@@ -1,95 +1,13 @@
 // Global variables
 const taskInput = document.getElementById("taskInput");
 const addTaskBtn = document.getElementById("addTaskBtn");
+const prioritySelect = document.getElementById("prioritySelect");
 const taskList = document.getElementById("taskList");
 const taskCounter = document.getElementById("taskCounter");
 const clearCompleted = document.getElementById("clearCompleted");
 
 let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
 let currentFilter = 'all';
-let selectedPriority = 'medium';
-let taskChart, priorityChart;
-
-// Initialize charts
-function initCharts() {
-    const taskCtx = document.getElementById('taskChart').getContext('2d');
-    const priorityCtx = document.getElementById('priorityChart').getContext('2d');
-
-    taskChart = new Chart(taskCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Completed', 'Pending'],
-            datasets: [{
-                data: [0, 0],
-                backgroundColor: [
-                    'rgba(16, 185, 129, 0.8)',
-                    'rgba(245, 158, 11, 0.8)'
-                ],
-                borderWidth: 2,
-                borderColor: '#fff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
-    });
-
-    priorityChart = new Chart(priorityCtx, {
-        type: 'bar',
-        data: {
-            labels: ['High', 'Medium', 'Low'],
-            datasets: [{
-                label: 'Tasks by Priority',
-                data: [0, 0, 0],
-                backgroundColor: [
-                    'rgba(239, 68, 68, 0.8)',
-                    'rgba(245, 158, 11, 0.8)',
-                    'rgba(16, 185, 129, 0.8)'
-                ],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
-                    }
-                }
-            }
-        }
-    });
-}
-
-// Update charts
-function updateCharts() {
-    const completed = tasks.filter(t => t.completed).length;
-    const pending = tasks.filter(t => !t.completed).length;
-
-    taskChart.data.datasets[0].data = [completed, pending];
-    taskChart.update();
-
-    const highPriority = tasks.filter(t => t.priority === 'high').length;
-    const mediumPriority = tasks.filter(t => t.priority === 'medium').length;
-    const lowPriority = tasks.filter(t => t.priority === 'low').length;
-
-    priorityChart.data.datasets[0].data = [highPriority, mediumPriority, lowPriority];
-    priorityChart.update();
-}
 
 // Update statistics
 function updateStats() {
@@ -102,8 +20,6 @@ function updateStats() {
     document.getElementById('completedTasks').textContent = completed;
     document.getElementById('pendingTasks').textContent = pending;
     document.getElementById('completionRate').textContent = rate + '%';
-
-    updateCharts();
 }
 
 // Save tasks to localStorage
@@ -141,7 +57,7 @@ function renderTasks() {
             <div class="empty-state">
                 <i class="bi bi-inbox"></i>
                 <h5>No tasks found</h5>
-                <p>Add a new task to get started!</p>
+                <p>Add a new task to get started</p>
             </div>
         `;
         updateCounter();
@@ -156,7 +72,7 @@ function renderTasks() {
         taskDiv.innerHTML = `
             <div class="task-checkbox" onclick="toggleComplete(${task.id})"></div>
             <div class="task-content">
-                <div class="task-text">${task.text}</div>
+                <div class="task-text">${escapeHtml(task.text)}</div>
                 <div class="task-meta">
                     <span><i class="bi bi-clock"></i> ${formatDate(task.createdAt)}</span>
                     <span class="priority-badge priority-${task.priority}">
@@ -181,16 +97,28 @@ function renderTasks() {
     updateStats();
 }
 
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Add task
 function addTask() {
     const text = taskInput.value.trim();
-    if (!text) return;
+    if (!text) {
+        alert('Please enter a task');
+        return;
+    }
+
+    const priority = prioritySelect.value;
 
     tasks.unshift({
         id: Date.now(),
-        text,
+        text: text,
         completed: false,
-        priority: selectedPriority,
+        priority: priority,
         createdAt: Date.now()
     });
 
@@ -236,17 +164,6 @@ function updateCounter() {
     taskCounter.textContent = `${remaining} task${remaining !== 1 ? 's' : ''} remaining`;
 }
 
-// Priority selection
-document.querySelectorAll('.priority-option').forEach(option => {
-    option.addEventListener('click', function() {
-        document.querySelectorAll('.priority-option').forEach(opt => 
-            opt.classList.remove('selected')
-        );
-        this.classList.add('selected');
-        selectedPriority = this.dataset.priority;
-    });
-});
-
 // Filter buttons
 document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', function() {
@@ -260,22 +177,30 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
 });
 
 // Clear completed
-clearCompleted.onclick = () => {
+clearCompleted.addEventListener('click', function() {
+    const completedCount = tasks.filter(task => task.completed).length;
+    if (completedCount === 0) {
+        alert('No completed tasks to clear');
+        return;
+    }
     if (confirm('Clear all completed tasks?')) {
         tasks = tasks.filter(task => !task.completed);
         saveTasks();
         renderTasks();
     }
-};
-
-// Add task button
-addTaskBtn.onclick = addTask;
-
-// Enter key to add task
-taskInput.addEventListener("keypress", e => {
-    if (e.key === "Enter") addTask();
 });
 
-// Initialize
-initCharts();
-renderTasks();
+// Add task button
+addTaskBtn.addEventListener('click', addTask);
+
+// Enter key to add task
+taskInput.addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        addTask();
+    }
+});
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    renderTasks();
+});

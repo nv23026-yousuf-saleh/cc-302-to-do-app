@@ -6,55 +6,54 @@
     <title>ProTask - Professional Task Manager</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
+    <div class="container py-4">
         <div class="main-container">
             <!-- Header -->
-            <div class="app-header">
+            <div class="app-header text-center">
                 <h1><i class="bi bi-check2-circle"></i> ProTask</h1>
-                <p>Your Professional Task Management Solution</p>
+                <p>Professional Task Management</p>
             </div>
 
             <!-- Statistics Section -->
             <div class="stats-section">
                 <div class="row g-3">
-                    <div class="col-md-3 col-sm-6">
+                    <div class="col-md-3 col-6">
                         <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            <div class="stat-icon bg-purple">
                                 <i class="bi bi-list-check"></i>
                             </div>
                             <div class="stat-value" id="totalTasks">0</div>
                             <div class="stat-label">Total Tasks</div>
                         </div>
                     </div>
-                    <div class="col-md-3 col-sm-6">
+                    <div class="col-md-3 col-6">
                         <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+                            <div class="stat-icon bg-success">
                                 <i class="bi bi-check-circle"></i>
                             </div>
                             <div class="stat-value" id="completedTasks">0</div>
                             <div class="stat-label">Completed</div>
                         </div>
                     </div>
-                    <div class="col-md-3 col-sm-6">
+                    <div class="col-md-3 col-6">
                         <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">
+                            <div class="stat-icon bg-warning">
                                 <i class="bi bi-clock-history"></i>
                             </div>
                             <div class="stat-value" id="pendingTasks">0</div>
                             <div class="stat-label">Pending</div>
                         </div>
                     </div>
-                    <div class="col-md-3 col-sm-6">
+                    <div class="col-md-3 col-6">
                         <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">
+                            <div class="stat-icon bg-info">
                                 <i class="bi bi-graph-up"></i>
                             </div>
                             <div class="stat-value" id="completionRate">0%</div>
-                            <div class="stat-label">Completion Rate</div>
+                            <div class="stat-label">Completion</div>
                         </div>
                     </div>
                 </div>
@@ -62,56 +61,26 @@
 
             <!-- Task Management Section -->
             <div class="task-section">
-                <!-- Chart Section -->
-                <div class="row mb-4">
-                    <div class="col-lg-6 mb-3">
-                        <div class="chart-section">
-                            <h5 class="mb-3"><i class="bi bi-pie-chart"></i> Task Distribution</h5>
-                            <div class="chart-container">
-                                <canvas id="taskChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-6 mb-3">
-                        <div class="chart-section">
-                            <h5 class="mb-3"><i class="bi bi-bar-chart"></i> Priority Breakdown</h5>
-                            <div class="chart-container">
-                                <canvas id="priorityChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Task Input Card -->
-                <div class="task-card">
+                <div class="task-card mb-4">
                     <h5 class="mb-3"><i class="bi bi-plus-circle"></i> Add New Task</h5>
-                    <div class="input-wrapper">
-                        <i class="bi bi-pencil input-icon"></i>
-                        <input type="text" id="taskInput" class="form-control" placeholder="What do you need to accomplish today?">
+                    <div class="input-group mb-3">
+                        <input type="text" id="taskInput" class="form-control" placeholder="What do you need to do?">
+                        <select id="prioritySelect" class="form-select" style="max-width: 150px;">
+                            <option value="low">Low Priority</option>
+                            <option value="medium" selected>Medium Priority</option>
+                            <option value="high">High Priority</option>
+                        </select>
+                        <button id="addTaskBtn" class="btn btn-purple">
+                            <i class="bi bi-plus-lg"></i> Add
+                        </button>
                     </div>
-                    <div class="priority-select mb-3">
-                        <div class="priority-option" data-priority="low">
-                            <div style="color: var(--success-green);"><i class="bi bi-circle-fill"></i></div>
-                            <small>Low</small>
-                        </div>
-                        <div class="priority-option selected" data-priority="medium">
-                            <div style="color: var(--warning-yellow);"><i class="bi bi-circle-fill"></i></div>
-                            <small>Medium</small>
-                        </div>
-                        <div class="priority-option" data-priority="high">
-                            <div style="color: var(--danger-red);"><i class="bi bi-circle-fill"></i></div>
-                            <small>High</small>
-                        </div>
-                    </div>
-                    <button id="addTaskBtn" class="btn btn-add-task w-100">
-                        <i class="bi bi-plus-lg"></i> Add Task
-                    </button>
                 </div>
 
                 <!-- Task Filters -->
-                <div class="task-filters">
+                <div class="task-filters mb-3">
                     <button class="filter-btn active" data-filter="all">
-                        <i class="bi bi-list-ul"></i> All Tasks
+                        <i class="bi bi-list-ul"></i> All
                     </button>
                     <button class="filter-btn" data-filter="active">
                         <i class="bi bi-circle"></i> Active
@@ -139,6 +108,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="script.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
