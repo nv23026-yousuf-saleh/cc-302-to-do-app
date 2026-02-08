@@ -32,14 +32,17 @@ function renderTasks() {
         actions.className = "actions";
 
         const completeBtn = document.createElement("button");
+        completeBtn.className = "btn btn-sm btn-success";
         completeBtn.textContent = "Complete";
         completeBtn.onclick = () => toggleComplete(task.id);
 
         const editBtn = document.createElement("button");
+        editBtn.className = "btn btn-sm btn-warning";
         editBtn.textContent = "Edit";
         editBtn.onclick = () => editTask(task.id);
 
         const deleteBtn = document.createElement("button");
+        deleteBtn.className = "btn btn-sm btn-danger";
         deleteBtn.textContent = "Delete";
         deleteBtn.onclick = () => deleteTask(task.id);
 
