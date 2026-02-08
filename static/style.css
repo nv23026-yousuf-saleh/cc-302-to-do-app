@@ -1,15 +1,13 @@
 body {
-    background-color: #f8f9fa; /* light gray page background */
+    background-color: #f8f9fa;
     font-family: "Segoe UI", system-ui, sans-serif;
 }
 
-/* Main card */
 .task-card {
     border-radius: 14px;
     background: #ffffff;
 }
 
-/* Task item */
 .task {
     display: flex;
     justify-content: space-between;
@@ -32,12 +30,10 @@ body {
     color: #6c757d;
 }
 
-/* Action buttons */
 .actions button {
     margin-left: 6px;
 }
 
-/* Header */
 header h2 {
     color: #0d6efd;
 }

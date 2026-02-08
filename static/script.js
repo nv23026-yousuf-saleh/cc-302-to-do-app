@@ -5,7 +5,6 @@ const taskCounter = document.getElementById("taskCounter");
 const clearCompleted = document.getElementById("clearCompleted");
 
 let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-let currentFilter = "all";
 
 function saveTasks() {
     localStorage.setItem("tasks", JSON.stringify(tasks));
@@ -14,13 +13,7 @@ function saveTasks() {
 function renderTasks() {
     taskList.innerHTML = "";
 
-    let filtered = tasks.filter(task => {
-        if (currentFilter === "active") return !task.completed;
-        if (currentFilter === "completed") return task.completed;
-        return true;
-    });
-
-    filtered.forEach(task => {
+    tasks.forEach(task => {
         const taskDiv = document.createElement("div");
         taskDiv.className = "task";
         if (task.completed) taskDiv.classList.add("completed");
@@ -71,7 +64,9 @@ function addTask() {
 
 function toggleComplete(id) {
     tasks = tasks.map(task =>
-        task.id === id ? { ...task, completed: !task.completed } : task
+        task.id === id
+            ? { ...task, completed: !task.completed }
+            : task
     );
     saveTasks();
     renderTasks();
@@ -86,7 +81,7 @@ function deleteTask(id) {
 function editTask(id) {
     const task = tasks.find(t => t.id === id);
     const newText = prompt("Edit task:", task.text);
-    if (newText !== null && newText.trim() !== "") {
+    if (newText && newText.trim() !== "") {
         task.text = newText.trim();
         saveTasks();
         renderTasks();
@@ -108,13 +103,6 @@ addTaskBtn.onclick = addTask;
 
 taskInput.addEventListener("keypress", e => {
     if (e.key === "Enter") addTask();
-});
-
-document.querySelectorAll(".filters button").forEach(btn => {
-    btn.onclick = () => {
-        currentFilter = btn.dataset.filter;
-        renderTasks();
-    };
 });
 
 renderTasks();
