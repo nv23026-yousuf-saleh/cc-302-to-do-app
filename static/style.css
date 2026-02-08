@@ -1,19 +1,43 @@
+body {
+    background-color: #f8f9fa; /* light gray page background */
+    font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+/* Main card */
+.task-card {
+    border-radius: 14px;
+    background: #ffffff;
+}
+
+/* Task item */
 .task {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 12px;
+    padding: 14px 16px;
     border: 1px solid #e9ecef;
-    border-radius: 6px;
-    margin-bottom: 8px;
-    background: #fff;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    background: #ffffff;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.task:hover {
+    background: #f8f9ff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
 }
 
 .task.completed span {
     text-decoration: line-through;
-    opacity: 0.6;
+    color: #6c757d;
 }
 
+/* Action buttons */
 .actions button {
-    margin-left: 5px;
+    margin-left: 6px;
+}
+
+/* Header */
+header h2 {
+    color: #0d6efd;
 }
