@@ -3,107 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ProTask - Professional Task Manager</title>
+    <title>FlowTask - Smart Task Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container py-4">
-        <div class="main-container">
-            <!-- Header -->
-            <div class="app-header text-center">
-                <h1><i class="bi bi-check2-circle"></i> ProTask</h1>
-                <p>Professional Task Management</p>
-            </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 sidebar">
+                <div class="sidebar-header">
+                    <div class="logo">
+                        <i class="bi bi-lightning-charge-fill"></i>
+                        <span>FlowTask</span>
+                    </div>
+                    <p class="tagline">Stay in your flow</p>
+                </div>
 
-            <!-- Statistics Section -->
-            <div class="stats-section">
-                <div class="row g-3">
-                    <div class="col-md-3 col-6">
-                        <div class="stat-card">
-                            <div class="stat-icon bg-purple">
-                                <i class="bi bi-list-check"></i>
-                            </div>
-                            <div class="stat-value" id="totalTasks">0</div>
-                            <div class="stat-label">Total Tasks</div>
-                        </div>
+                <!-- Gamification Stats -->
+                <div class="streak-card">
+                    <div class="streak-icon">
+                        <i class="bi bi-fire"></i>
                     </div>
-                    <div class="col-md-3 col-6">
-                        <div class="stat-card">
-                            <div class="stat-icon bg-success">
-                                <i class="bi bi-check-circle"></i>
-                            </div>
-                            <div class="stat-value" id="completedTasks">0</div>
-                            <div class="stat-label">Completed</div>
-                        </div>
+                    <div class="streak-info">
+                        <div class="streak-number" id="streakCount">0</div>
+                        <div class="streak-label">Day Streak</div>
                     </div>
-                    <div class="col-md-3 col-6">
-                        <div class="stat-card">
-                            <div class="stat-icon bg-warning">
-                                <i class="bi bi-clock-history"></i>
-                            </div>
-                            <div class="stat-value" id="pendingTasks">0</div>
-                            <div class="stat-label">Pending</div>
-                        </div>
+                    <div class="xp-badge" id="xpPoints">0 XP</div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="quick-stats">
+                    <div class="stat-item">
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        <span id="completedToday">0 completed today</span>
                     </div>
-                    <div class="col-md-3 col-6">
-                        <div class="stat-card">
-                            <div class="stat-icon bg-info">
-                                <i class="bi bi-graph-up"></i>
-                            </div>
-                            <div class="stat-value" id="completionRate">0%</div>
-                            <div class="stat-label">Completion</div>
-                        </div>
+                    <div class="stat-item">
+                        <i class="bi bi-calendar-event text-primary"></i>
+                        <span id="todayDate"></span>
                     </div>
+                </div>
+
+                <!-- View Switcher -->
+                <div class="view-switcher">
+                    <button class="view-btn active" data-view="today">
+                        <i class="bi bi-calendar-day"></i> Today
+                    </button>
+                    <button class="view-btn" data-view="timeline">
+                        <i class="bi bi-clock-history"></i> Timeline
+                    </button>
+                    <button class="view-btn" data-view="all">
+                        <i class="bi bi-list-ul"></i> All Tasks
+                    </button>
                 </div>
             </div>
 
-            <!-- Task Management Section -->
-            <div class="task-section">
-                <!-- Task Input Card -->
-                <div class="task-card mb-4">
-                    <h5 class="mb-3"><i class="bi bi-plus-circle"></i> Add New Task</h5>
-                    <div class="input-group mb-3">
-                        <input type="text" id="taskInput" class="form-control" placeholder="What do you need to do?">
-                        <select id="prioritySelect" class="form-select" style="max-width: 150px;">
-                            <option value="low">Low Priority</option>
-                            <option value="medium" selected>Medium Priority</option>
-                            <option value="high">High Priority</option>
-                        </select>
-                        <button id="addTaskBtn" class="btn btn-purple">
-                            <i class="bi bi-plus-lg"></i> Add
+            <!-- Main Content -->
+            <div class="col-md-9 main-content">
+                <div class="content-wrapper">
+                    <!-- Header with Add Task -->
+                    <div class="task-input-section">
+                        <h2 class="section-title" id="viewTitle">Today's Tasks</h2>
+                        <div class="quick-add">
+                            <div class="input-wrapper">
+                                <i class="bi bi-plus-circle input-icon"></i>
+                                <input 
+                                    type="text" 
+                                    id="taskInput" 
+                                    class="task-input" 
+                                    placeholder="Add a task... (Press Enter)"
+                                    autocomplete="off"
+                                >
+                                <select id="prioritySelect" class="priority-select">
+                                    <option value="low">Low</option>
+                                    <option value="medium" selected>Medium</option>
+                                    <option value="high">High</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Pills -->
+                    <div class="filter-section" id="filterSection">
+                        <button class="filter-pill active" data-filter="all">
+                            All <span class="pill-count" id="countAll">0</span>
+                        </button>
+                        <button class="filter-pill" data-filter="active">
+                            Active <span class="pill-count" id="countActive">0</span>
+                        </button>
+                        <button class="filter-pill" data-filter="completed">
+                            Done <span class="pill-count" id="countCompleted">0</span>
+                        </button>
+                        <button class="filter-pill filter-high" data-filter="high">
+                            <i class="bi bi-exclamation-circle"></i> Urgent
+                        </button>
+                    </div>
+
+                    <!-- Task List Container -->
+                    <div id="taskContainer" class="task-container"></div>
+
+                    <!-- Timeline View (Hidden by default) -->
+                    <div id="timelineView" class="timeline-view" style="display: none;">
+                        <div class="timeline-items" id="timelineItems"></div>
+                    </div>
+
+                    <!-- Footer Actions -->
+                    <div class="footer-actions">
+                        <div class="task-summary">
+                            <span id="taskSummary">No tasks yet</span>
+                        </div>
+                        <button id="clearCompleted" class="btn-clear">
+                            <i class="bi bi-trash3"></i> Clear completed
                         </button>
                     </div>
                 </div>
-
-                <!-- Task Filters -->
-                <div class="task-filters mb-3">
-                    <button class="filter-btn active" data-filter="all">
-                        <i class="bi bi-list-ul"></i> All
-                    </button>
-                    <button class="filter-btn" data-filter="active">
-                        <i class="bi bi-circle"></i> Active
-                    </button>
-                    <button class="filter-btn" data-filter="completed">
-                        <i class="bi bi-check-circle"></i> Completed
-                    </button>
-                    <button class="filter-btn" data-filter="high">
-                        <i class="bi bi-exclamation-circle"></i> High Priority
-                    </button>
-                </div>
-
-                <!-- Task List -->
-                <div id="taskList"></div>
-
-                <!-- Footer -->
-                <div class="task-footer">
-                    <span class="task-counter" id="taskCounter">0 tasks remaining</span>
-                    <button id="clearCompleted" class="btn btn-outline-danger btn-sm">
-                        <i class="bi bi-trash"></i> Clear Completed
-                    </button>
-                </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Celebration Modal -->
+    <div class="celebration-overlay" id="celebrationOverlay">
+        <div class="celebration-content">
+            <div class="celebration-icon">🎉</div>
+            <h3>Amazing!</h3>
+            <p id="celebrationMessage">Task completed!</p>
+            <div class="xp-earned" id="xpEarned">+10 XP</div>
         </div>
     </div>
 
