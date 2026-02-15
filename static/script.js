@@ -3,10 +3,12 @@
 // ========================================
 
 const taskInput = document.getElementById('taskInput');
+const deadlineInput = document.getElementById('deadlineInput');
 const prioritySelect = document.getElementById('prioritySelect');
 const taskContainer = document.getElementById('taskContainer');
 const timelineView = document.getElementById('timelineView');
 const timelineItems = document.getElementById('timelineItems');
+const calendarView = document.getElementById('calendarView');
 const clearCompleted = document.getElementById('clearCompleted');
 const celebrationOverlay = document.getElementById('celebrationOverlay');
 const themeToggle = document.getElementById('themeToggle');
@@ -14,6 +16,8 @@ const themeToggle = document.getElementById('themeToggle');
 let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 let currentFilter = 'all';
 let currentView = 'today';
+let currentCalendarDate = new Date();
+let selectedCalendarDate = null;
 let userData = JSON.parse(localStorage.getItem('userData')) || {
     xp: 0,
     streak: 0,
@@ -136,17 +140,30 @@ function addTask() {
     const priority = prioritySelect.value;
     const suggestedPriority = autoSuggestPriority(text);
     
+    // Parse deadline from text or date input
+    const parsedDeadline = parseDeadlineFromText(text);
+    const manualDeadline = deadlineInput.value ? new Date(deadlineInput.value).getTime() : null;
+    const deadline = manualDeadline || parsedDeadline;
+    
+    // Remove deadline keywords from task text if found
+    let cleanedText = text;
+    if (parsedDeadline && !manualDeadline) {
+        cleanedText = removeDeadlineFromText(text);
+    }
+    
     const task = {
         id: Date.now(),
-        text: text,
+        text: cleanedText,
         completed: false,
         priority: suggestedPriority || priority,
         createdAt: Date.now(),
-        completedAt: null
+        completedAt: null,
+        deadline: deadline
     };
 
     tasks.unshift(task);
     taskInput.value = '';
+    deadlineInput.value = '';
     saveTasks();
     renderTasks();
     
@@ -176,6 +193,138 @@ function autoSuggestPriority(text) {
     }
     
     return null; // Use selected priority
+}
+
+// ========================================
+// DEADLINE PARSING FUNCTIONS
+// ========================================
+
+function parseDeadlineFromText(text) {
+    const lowerText = text.toLowerCase();
+    const now = new Date();
+    
+    // Check for "tomorrow"
+    if (lowerText.includes('tomorrow')) {
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(23, 59, 59, 999);
+        return tomorrow.getTime();
+    }
+    
+    // Check for "today"
+    if (lowerText.includes('today')) {
+        const today = new Date(now);
+        today.setHours(23, 59, 59, 999);
+        return today.getTime();
+    }
+    
+    // Check for days of week
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    for (let i = 0; i < days.length; i++) {
+        if (lowerText.includes(days[i])) {
+            const targetDay = i;
+            const currentDay = now.getDay();
+            let daysUntilTarget = targetDay - currentDay;
+            if (daysUntilTarget <= 0) daysUntilTarget += 7;
+            
+            const targetDate = new Date(now);
+            targetDate.setDate(targetDate.getDate() + daysUntilTarget);
+            targetDate.setHours(23, 59, 59, 999);
+            return targetDate.getTime();
+        }
+    }
+    
+    // Check for "in X days"
+    const inDaysMatch = lowerText.match(/in (\d+) days?/);
+    if (inDaysMatch) {
+        const days = parseInt(inDaysMatch[1]);
+        const targetDate = new Date(now);
+        targetDate.setDate(targetDate.getDate() + days);
+        targetDate.setHours(23, 59, 59, 999);
+        return targetDate.getTime();
+    }
+    
+    // Check for "in X weeks"
+    const inWeeksMatch = lowerText.match(/in (\d+) weeks?/);
+    if (inWeeksMatch) {
+        const weeks = parseInt(inWeeksMatch[1]);
+        const targetDate = new Date(now);
+        targetDate.setDate(targetDate.getDate() + (weeks * 7));
+        targetDate.setHours(23, 59, 59, 999);
+        return targetDate.getTime();
+    }
+    
+    // Check for date patterns like "march 15", "3/15", "2026-03-15"
+    const datePatterns = [
+        /(\d{4})-(\d{1,2})-(\d{1,2})/, // YYYY-MM-DD
+        /(\d{1,2})\/(\d{1,2})\/(\d{2,4})/, // MM/DD/YYYY or MM/DD/YY
+        /(\d{1,2})\/(\d{1,2})/ // MM/DD
+    ];
+    
+    for (const pattern of datePatterns) {
+        const match = text.match(pattern);
+        if (match) {
+            let year, month, day;
+            if (pattern.source.includes('\\d{4}')) {
+                // YYYY-MM-DD
+                year = parseInt(match[1]);
+                month = parseInt(match[2]) - 1;
+                day = parseInt(match[3]);
+            } else if (match[3]) {
+                // MM/DD/YYYY or MM/DD/YY
+                month = parseInt(match[1]) - 1;
+                day = parseInt(match[2]);
+                year = parseInt(match[3]);
+                if (year < 100) year += 2000;
+            } else {
+                // MM/DD - use current or next year
+                month = parseInt(match[1]) - 1;
+                day = parseInt(match[2]);
+                year = now.getFullYear();
+                const testDate = new Date(year, month, day);
+                if (testDate < now) year++;
+            }
+            
+            const targetDate = new Date(year, month, day, 23, 59, 59, 999);
+            if (!isNaN(targetDate.getTime())) {
+                return targetDate.getTime();
+            }
+        }
+    }
+    
+    // Check for month names
+    const months = ['january', 'february', 'march', 'april', 'may', 'june', 
+                    'july', 'august', 'september', 'october', 'november', 'december'];
+    for (let i = 0; i < months.length; i++) {
+        const monthPattern = new RegExp(months[i] + '\\s+(\\d{1,2})', 'i');
+        const match = text.match(monthPattern);
+        if (match) {
+            const day = parseInt(match[1]);
+            let year = now.getFullYear();
+            const testDate = new Date(year, i, day);
+            if (testDate < now) year++;
+            
+            const targetDate = new Date(year, i, day, 23, 59, 59, 999);
+            return targetDate.getTime();
+        }
+    }
+    
+    return null;
+}
+
+function removeDeadlineFromText(text) {
+    // Remove common deadline patterns
+    let cleaned = text;
+    
+    // Remove "by [date]", "due [date]", etc.
+    cleaned = cleaned.replace(/\s*(by|due|until|deadline)\s+[a-zA-Z0-9\/\-\s]+/gi, '');
+    cleaned = cleaned.replace(/\s*(tomorrow|today)/gi, '');
+    cleaned = cleaned.replace(/\s*(sunday|monday|tuesday|wednesday|thursday|friday|saturday)/gi, '');
+    cleaned = cleaned.replace(/\s*in\s+\d+\s+(days?|weeks?)/gi, '');
+    cleaned = cleaned.replace(/\s*\d{4}-\d{1,2}-\d{1,2}/g, '');
+    cleaned = cleaned.replace(/\s*\d{1,2}\/\d{1,2}(\/\d{2,4})?/g, '');
+    
+    return cleaned.trim();
 }
 
 function toggleComplete(id) {
@@ -262,15 +411,24 @@ function rolloverUncompletedTasks() {
 function renderTasks() {
     let filteredTasks = getFilteredTasks();
 
-    if (currentView === 'timeline') {
+    if (currentView === 'calendar') {
+        renderCalendarView();
+        taskContainer.style.display = 'none';
+        timelineView.style.display = 'none';
+        calendarView.style.display = 'block';
+        document.getElementById('filterSection').style.display = 'none';
+        return;
+    } else if (currentView === 'timeline') {
         renderTimelineView(filteredTasks);
         taskContainer.style.display = 'none';
         timelineView.style.display = 'block';
+        calendarView.style.display = 'none';
         document.getElementById('filterSection').style.display = 'none';
         return;
     } else {
         taskContainer.style.display = 'block';
         timelineView.style.display = 'none';
+        calendarView.style.display = 'none';
         document.getElementById('filterSection').style.display = 'flex';
     }
 
@@ -328,6 +486,7 @@ function createTaskElement(task) {
     taskDiv.className = `task-item ${task.completed ? 'completed' : ''} priority-${task.priority}`;
 
     const timeStr = formatTime(task.createdAt);
+    const deadlineBadge = task.deadline ? getDeadlineBadge(task.deadline, task.completed) : '';
 
     taskDiv.innerHTML = `
         <div class="task-content-row">
@@ -341,6 +500,7 @@ function createTaskElement(task) {
                     </div>
                     <div class="priority-tag ${task.priority}">${task.priority}</div>
                     ${task.rolledOver ? '<span class="badge bg-info">Rolled Over</span>' : ''}
+                    ${deadlineBadge}
                 </div>
             </div>
             <div class="task-actions">
@@ -390,6 +550,201 @@ function renderTimelineView(filteredTasks) {
 
         timelineItems.appendChild(timelineItem);
     });
+}
+
+// ========================================
+// CALENDAR VIEW FUNCTIONS
+// ========================================
+
+function renderCalendarView() {
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    
+    // Update month/year display
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+    document.getElementById('calendarMonthYear').textContent = `${monthNames[month]} ${year}`;
+    
+    // Render calendar days
+    const calendarDays = document.getElementById('calendarDays');
+    calendarDays.innerHTML = '';
+    
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+    
+    const today = new Date();
+    const todayStr = today.toDateString();
+    
+    // Previous month days
+    for (let i = firstDay - 1; i >= 0; i--) {
+        const day = daysInPrevMonth - i;
+        const dayEl = createCalendarDay(day, year, month - 1, true);
+        calendarDays.appendChild(dayEl);
+    }
+    
+    // Current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dayEl = createCalendarDay(day, year, month, false);
+        const dateStr = new Date(year, month, day).toDateString();
+        
+        if (dateStr === todayStr) {
+            dayEl.classList.add('today');
+        }
+        
+        if (selectedCalendarDate && dateStr === selectedCalendarDate.toDateString()) {
+            dayEl.classList.add('selected');
+        }
+        
+        calendarDays.appendChild(dayEl);
+    }
+    
+    // Next month days
+    const totalCells = calendarDays.children.length;
+    const remainingCells = 42 - totalCells; // 6 rows * 7 days
+    for (let day = 1; day <= remainingCells; day++) {
+        const dayEl = createCalendarDay(day, year, month + 1, true);
+        calendarDays.appendChild(dayEl);
+    }
+    
+    // Render tasks for selected date
+    if (selectedCalendarDate) {
+        renderSelectedDateTasks();
+    } else {
+        document.getElementById('selectedDateTasks').innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon"><i class="bi bi-calendar-check"></i></div>
+                <h4>Select a date</h4>
+                <p>Click on a calendar date to view tasks</p>
+            </div>
+        `;
+    }
+}
+
+function createCalendarDay(day, year, month, isOtherMonth) {
+    const dayEl = document.createElement('div');
+    dayEl.className = 'calendar-day';
+    if (isOtherMonth) dayEl.classList.add('other-month');
+    
+    const date = new Date(year, month, day);
+    const dateStr = date.toDateString();
+    
+    // Check for tasks on this date
+    const tasksOnDate = tasks.filter(t => {
+        if (!t.deadline) return false;
+        const taskDeadline = new Date(t.deadline);
+        return taskDeadline.toDateString() === dateStr;
+    });
+    
+    if (tasksOnDate.length > 0 && !isOtherMonth) {
+        dayEl.classList.add('has-tasks');
+    }
+    
+    dayEl.innerHTML = `
+        <div class="calendar-day-number">${day}</div>
+        ${tasksOnDate.length > 0 ? `
+            <div class="calendar-day-indicators">
+                ${tasksOnDate.slice(0, 3).map(t => 
+                    `<div class="calendar-indicator-dot ${t.priority}"></div>`
+                ).join('')}
+            </div>
+        ` : ''}
+    `;
+    
+    dayEl.addEventListener('click', () => {
+        if (!isOtherMonth) {
+            selectedCalendarDate = date;
+            renderCalendarView();
+        }
+    });
+    
+    return dayEl;
+}
+
+function renderSelectedDateTasks() {
+    const selectedDateTasksEl = document.getElementById('selectedDateTasks');
+    const dateStr = selectedCalendarDate.toDateString();
+    
+    const tasksOnDate = tasks.filter(t => {
+        if (!t.deadline) return false;
+        const taskDeadline = new Date(t.deadline);
+        return taskDeadline.toDateString() === dateStr;
+    });
+    
+    const dateFormatted = selectedCalendarDate.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    
+    selectedDateTasksEl.innerHTML = `
+        <div class="selected-date-header">
+            <i class="bi bi-calendar-check"></i> ${dateFormatted}
+            <span style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500;">
+                (${tasksOnDate.length} task${tasksOnDate.length !== 1 ? 's' : ''})
+            </span>
+        </div>
+        <div class="task-container">
+            ${tasksOnDate.length === 0 ? `
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="bi bi-inbox"></i></div>
+                    <h4>No tasks due</h4>
+                    <p>No tasks scheduled for this date</p>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    const container = selectedDateTasksEl.querySelector('.task-container');
+    tasksOnDate.forEach(task => {
+        const taskEl = createTaskElement(task);
+        if (container.querySelector('.empty-state')) {
+            container.innerHTML = '';
+        }
+        container.appendChild(taskEl);
+    });
+}
+
+function getDeadlineBadge(deadline, isCompleted) {
+    if (isCompleted) return '';
+    
+    const now = new Date();
+    const deadlineDate = new Date(deadline);
+    const diffTime = deadlineDate - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    let badgeClass = 'deadline-badge';
+    let icon = 'bi-calendar-event';
+    let text = '';
+    
+    if (diffDays < 0) {
+        badgeClass += ' overdue';
+        icon = 'bi-exclamation-triangle-fill';
+        text = `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) !== 1 ? 's' : ''}`;
+    } else if (diffDays === 0) {
+        badgeClass += ' urgent';
+        icon = 'bi-alarm-fill';
+        text = 'Due today!';
+    } else if (diffDays === 1) {
+        badgeClass += ' urgent';
+        icon = 'bi-alarm';
+        text = 'Due tomorrow';
+    } else if (diffDays <= 3) {
+        badgeClass += ' urgent';
+        icon = 'bi-calendar-week';
+        text = `Due in ${diffDays} days`;
+    } else if (diffDays <= 7) {
+        badgeClass += ' upcoming';
+        icon = 'bi-calendar-check';
+        text = `Due in ${diffDays} days`;
+    } else {
+        badgeClass += ' upcoming';
+        icon = 'bi-calendar';
+        text = deadlineDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    
+    return `<div class="${badgeClass}"><i class="${icon}"></i> ${text}</div>`;
 }
 
 // ========================================
@@ -503,6 +858,7 @@ document.querySelectorAll('.view-btn').forEach(btn => {
         
         const titles = {
             'today': "Today's Tasks",
+            'calendar': 'Calendar View',
             'timeline': 'Task Timeline',
             'all': 'All Tasks'
         };
@@ -531,6 +887,17 @@ clearCompleted.addEventListener('click', () => {
 // Close celebration on click
 celebrationOverlay.addEventListener('click', () => {
     celebrationOverlay.classList.remove('show');
+});
+
+// Calendar navigation
+document.getElementById('prevMonth')?.addEventListener('click', () => {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+    renderCalendarView();
+});
+
+document.getElementById('nextMonth')?.addEventListener('click', () => {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+    renderCalendarView();
 });
 
 // ========================================

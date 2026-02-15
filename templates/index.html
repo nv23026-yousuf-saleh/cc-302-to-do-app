@@ -59,6 +59,9 @@
                     <button class="view-btn active" data-view="today">
                         <i class="bi bi-calendar-day"></i> Today
                     </button>
+                    <button class="view-btn" data-view="calendar">
+                        <i class="bi bi-calendar3"></i> Calendar
+                    </button>
                     <button class="view-btn" data-view="timeline">
                         <i class="bi bi-clock-history"></i> Timeline
                     </button>
@@ -81,8 +84,14 @@
                                     type="text" 
                                     id="taskInput" 
                                     class="task-input" 
-                                    placeholder="Add a task... (Press Enter)"
+                                    placeholder="Add a task... (e.g., 'Buy milk by Friday')"
                                     autocomplete="off"
+                                >
+                                <input 
+                                    type="date" 
+                                    id="deadlineInput" 
+                                    class="deadline-input"
+                                    title="Set deadline"
                                 >
                                 <select id="prioritySelect" class="priority-select">
                                     <option value="low">Low</option>
@@ -115,6 +124,32 @@
                     <!-- Timeline View (Hidden by default) -->
                     <div id="timelineView" class="timeline-view" style="display: none;">
                         <div class="timeline-items" id="timelineItems"></div>
+                    </div>
+
+                    <!-- Calendar View (Hidden by default) -->
+                    <div id="calendarView" class="calendar-view" style="display: none;">
+                        <div class="calendar-header">
+                            <button id="prevMonth" class="month-nav-btn">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <h3 id="calendarMonthYear" class="calendar-month-title">January 2026</h3>
+                            <button id="nextMonth" class="month-nav-btn">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                        <div class="calendar-grid">
+                            <div class="calendar-weekdays">
+                                <div class="calendar-weekday">Sun</div>
+                                <div class="calendar-weekday">Mon</div>
+                                <div class="calendar-weekday">Tue</div>
+                                <div class="calendar-weekday">Wed</div>
+                                <div class="calendar-weekday">Thu</div>
+                                <div class="calendar-weekday">Fri</div>
+                                <div class="calendar-weekday">Sat</div>
+                            </div>
+                            <div id="calendarDays" class="calendar-days"></div>
+                        </div>
+                        <div id="selectedDateTasks" class="selected-date-tasks"></div>
                     </div>
 
                     <!-- Footer Actions -->
