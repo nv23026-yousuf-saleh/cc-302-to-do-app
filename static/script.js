@@ -9,6 +9,7 @@ const timelineView = document.getElementById('timelineView');
 const timelineItems = document.getElementById('timelineItems');
 const clearCompleted = document.getElementById('clearCompleted');
 const celebrationOverlay = document.getElementById('celebrationOverlay');
+const themeToggle = document.getElementById('themeToggle');
 
 let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 let currentFilter = 'all';
@@ -19,6 +20,35 @@ let userData = JSON.parse(localStorage.getItem('userData')) || {
     lastActive: null,
     completedToday: 0
 };
+
+// ========================================
+// THEME MANAGEMENT
+// ========================================
+
+function initTheme() {
+    // Check for saved theme preference or default to 'light'
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    setTheme(savedTheme);
+}
+
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    
+    // Update button label
+    const themeLabel = themeToggle.querySelector('.theme-label');
+    if (theme === 'dark') {
+        themeLabel.textContent = 'Light Mode';
+    } else {
+        themeLabel.textContent = 'Dark Mode';
+    }
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+}
 
 // ========================================
 // GAMIFICATION SYSTEM
@@ -444,6 +474,9 @@ function updateTaskSummary() {
 // EVENT LISTENERS
 // ========================================
 
+// Theme toggle
+themeToggle.addEventListener('click', toggleTheme);
+
 // Add task on Enter
 taskInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
@@ -505,6 +538,7 @@ celebrationOverlay.addEventListener('click', () => {
 // ========================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    initTheme(); // Initialize theme first
     updateUserData();
     rolloverUncompletedTasks();
     renderTasks();
