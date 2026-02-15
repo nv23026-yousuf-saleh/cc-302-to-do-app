@@ -25,6 +25,33 @@ let userData = JSON.parse(localStorage.getItem('userData')) || {
     completedToday: 0
 };
 
+// Pomodoro state
+let pomodoroState = {
+    isRunning: false,
+    isPaused: false,
+    currentMode: 'work', // 'work', 'shortBreak', 'longBreak'
+    timeRemaining: 25 * 60, // seconds
+    totalTime: 25 * 60,
+    currentSession: 0,
+    completedSessions: 0,
+    selectedTaskId: null,
+    timerInterval: null
+};
+
+let pomodoroSettings = JSON.parse(localStorage.getItem('pomodoroSettings')) || {
+    workDuration: 25,
+    shortBreak: 5,
+    longBreak: 15,
+    soundEnabled: true
+};
+
+let pomodoroStats = JSON.parse(localStorage.getItem('pomodoroStats')) || {
+    todayPomodoros: 0,
+    totalPomodoros: 0,
+    totalMinutes: 0,
+    lastDate: null
+};
+
 // ========================================
 // THEME MANAGEMENT
 // ========================================
@@ -39,12 +66,12 @@ function setTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
     
-    // Update button label
+    // Update button label - FIXED: Show opposite action
     const themeLabel = themeToggle.querySelector('.theme-label');
     if (theme === 'dark') {
-        themeLabel.textContent = 'Light Mode';
+        themeLabel.textContent = 'Light Mode'; // In dark mode, show "Light Mode" to switch to light
     } else {
-        themeLabel.textContent = 'Dark Mode';
+        themeLabel.textContent = 'Dark Mode'; // In light mode, show "Dark Mode" to switch to dark
     }
 }
 
@@ -411,11 +438,20 @@ function rolloverUncompletedTasks() {
 function renderTasks() {
     let filteredTasks = getFilteredTasks();
 
-    if (currentView === 'calendar') {
+    if (currentView === 'focus') {
+        renderFocusView();
+        taskContainer.style.display = 'none';
+        timelineView.style.display = 'none';
+        calendarView.style.display = 'none';
+        document.getElementById('focusView').style.display = 'block';
+        document.getElementById('filterSection').style.display = 'none';
+        return;
+    } else if (currentView === 'calendar') {
         renderCalendarView();
         taskContainer.style.display = 'none';
         timelineView.style.display = 'none';
         calendarView.style.display = 'block';
+        document.getElementById('focusView').style.display = 'none';
         document.getElementById('filterSection').style.display = 'none';
         return;
     } else if (currentView === 'timeline') {
@@ -423,12 +459,14 @@ function renderTasks() {
         taskContainer.style.display = 'none';
         timelineView.style.display = 'block';
         calendarView.style.display = 'none';
+        document.getElementById('focusView').style.display = 'none';
         document.getElementById('filterSection').style.display = 'none';
         return;
     } else {
         taskContainer.style.display = 'block';
         timelineView.style.display = 'none';
         calendarView.style.display = 'none';
+        document.getElementById('focusView').style.display = 'none';
         document.getElementById('filterSection').style.display = 'flex';
     }
 
@@ -648,6 +686,7 @@ function createCalendarDay(day, year, month, isOtherMonth) {
                     `<div class="calendar-indicator-dot ${t.priority}"></div>`
                 ).join('')}
             </div>
+            <div class="calendar-day-tasks">${tasksOnDate[0].text}</div>
         ` : ''}
     `;
     
@@ -745,6 +784,339 @@ function getDeadlineBadge(deadline, isCompleted) {
     }
     
     return `<div class="${badgeClass}"><i class="${icon}"></i> ${text}</div>`;
+}
+
+// ========================================
+// POMODORO FOCUS MODE FUNCTIONS
+// ========================================
+
+function renderFocusView() {
+    updatePomodoroStats();
+    populateFocusTaskDropdown();
+    updateTimerDisplay();
+    updateSessionDots();
+}
+
+function populateFocusTaskDropdown() {
+    const dropdown = document.getElementById('focusTaskSelect');
+    const activeTasks = tasks.filter(t => !t.completed);
+    
+    dropdown.innerHTML = '<option value="">Select a task...</option>';
+    activeTasks.forEach(task => {
+        const option = document.createElement('option');
+        option.value = task.id;
+        option.textContent = task.text;
+        dropdown.appendChild(option);
+    });
+    
+    // Restore selected task if any
+    if (pomodoroState.selectedTaskId) {
+        dropdown.value = pomodoroState.selectedTaskId;
+        updateFocusTaskDisplay();
+    }
+}
+
+function updateFocusTaskDisplay() {
+    const dropdown = document.getElementById('focusTaskSelect');
+    const display = document.getElementById('focusTaskDisplay');
+    const selectedTaskId = parseInt(dropdown.value);
+    
+    pomodoroState.selectedTaskId = selectedTaskId || null;
+    
+    if (selectedTaskId) {
+        const task = tasks.find(t => t.id === selectedTaskId);
+        if (task) {
+            display.innerHTML = `
+                <i class="bi bi-check-circle-fill"></i>
+                <span>${task.text}</span>
+            `;
+        }
+    } else {
+        display.innerHTML = `
+            <i class="bi bi-check-circle"></i>
+            <span>No task selected</span>
+        `;
+    }
+}
+
+function startPomodoro() {
+    if (!pomodoroState.selectedTaskId) {
+        alert('Please select a task to focus on!');
+        return;
+    }
+    
+    pomodoroState.isRunning = true;
+    pomodoroState.isPaused = false;
+    
+    if (pomodoroState.timeRemaining === pomodoroState.totalTime) {
+        // Starting fresh session
+        if (pomodoroState.currentMode === 'work') {
+            pomodoroState.currentSession++;
+        }
+    }
+    
+    updateControlButtons();
+    updateSessionDots();
+    
+    pomodoroState.timerInterval = setInterval(() => {
+        if (!pomodoroState.isPaused) {
+            pomodoroState.timeRemaining--;
+            updateTimerDisplay();
+            updateTimerRing();
+            updateBrowserTab();
+            
+            if (pomodoroState.timeRemaining <= 0) {
+                completeSession();
+            }
+        }
+    }, 1000);
+}
+
+function pausePomodoro() {
+    pomodoroState.isPaused = true;
+    updateControlButtons();
+}
+
+function resumePomodoro() {
+    pomodoroState.isPaused = false;
+    updateControlButtons();
+}
+
+function stopPomodoro() {
+    if (!confirm('Stop the current session? Progress will be lost.')) return;
+    
+    clearInterval(pomodoroState.timerInterval);
+    resetPomodoroState();
+    updateTimerDisplay();
+    updateTimerRing();
+    updateControlButtons();
+    updateSessionDots();
+    updateBrowserTab();
+}
+
+function skipSession() {
+    if (!confirm('Skip to the next session?')) return;
+    
+    clearInterval(pomodoroState.timerInterval);
+    completeSession();
+}
+
+function completeSession() {
+    clearInterval(pomodoroState.timerInterval);
+    
+    if (pomodoroSettings.soundEnabled) {
+        playNotificationSound();
+    }
+    
+    // Award XP for work sessions
+    if (pomodoroState.currentMode === 'work') {
+        const xpAmount = 5;
+        addXP(xpAmount);
+        pomodoroState.completedSessions++;
+        
+        // Update pomodoro stats
+        updatePomodoroStatsData();
+        
+        showCelebration('🍅 Focus session complete!', xpAmount);
+    }
+    
+    // Determine next mode
+    if (pomodoroState.currentMode === 'work') {
+        if (pomodoroState.currentSession % 4 === 0) {
+            switchToMode('longBreak');
+        } else {
+            switchToMode('shortBreak');
+        }
+    } else {
+        switchToMode('work');
+    }
+}
+
+function switchToMode(mode) {
+    pomodoroState.currentMode = mode;
+    pomodoroState.isRunning = false;
+    pomodoroState.isPaused = false;
+    
+    if (mode === 'work') {
+        pomodoroState.timeRemaining = pomodoroSettings.workDuration * 60;
+        pomodoroState.totalTime = pomodoroSettings.workDuration * 60;
+    } else if (mode === 'shortBreak') {
+        pomodoroState.timeRemaining = pomodoroSettings.shortBreak * 60;
+        pomodoroState.totalTime = pomodoroSettings.shortBreak * 60;
+    } else if (mode === 'longBreak') {
+        pomodoroState.timeRemaining = pomodoroSettings.longBreak * 60;
+        pomodoroState.totalTime = pomodoroSettings.longBreak * 60;
+    }
+    
+    updateTimerDisplay();
+    updateTimerRing();
+    updateControlButtons();
+    updateSessionDots();
+    updateBrowserTab();
+}
+
+function resetPomodoroState() {
+    pomodoroState.isRunning = false;
+    pomodoroState.isPaused = false;
+    pomodoroState.currentMode = 'work';
+    pomodoroState.timeRemaining = pomodoroSettings.workDuration * 60;
+    pomodoroState.totalTime = pomodoroSettings.workDuration * 60;
+}
+
+function updateTimerDisplay() {
+    const minutes = Math.floor(pomodoroState.timeRemaining / 60);
+    const seconds = pomodoroState.timeRemaining % 60;
+    const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    document.getElementById('timerDisplay').textContent = timeStr;
+    
+    const modeText = pomodoroState.currentMode === 'work' ? 'WORK SESSION' :
+                     pomodoroState.currentMode === 'shortBreak' ? 'SHORT BREAK' :
+                     'LONG BREAK';
+    document.getElementById('timerMode').textContent = modeText;
+}
+
+function updateTimerRing() {
+    const ring = document.getElementById('timerRingProgress');
+    const circumference = 2 * Math.PI * 90; // radius = 90
+    const progress = pomodoroState.timeRemaining / pomodoroState.totalTime;
+    const offset = circumference * (1 - progress);
+    
+    ring.style.strokeDashoffset = offset;
+    
+    if (pomodoroState.currentMode !== 'work') {
+        ring.classList.add('break-mode');
+    } else {
+        ring.classList.remove('break-mode');
+    }
+}
+
+function updateControlButtons() {
+    const startBtn = document.getElementById('startPomodoroBtn');
+    const pauseBtn = document.getElementById('pausePomodoroBtn');
+    const resumeBtn = document.getElementById('resumePomodoroBtn');
+    const skipBtn = document.getElementById('skipPomodoroBtn');
+    const stopBtn = document.getElementById('stopPomodoroBtn');
+    
+    if (!pomodoroState.isRunning) {
+        startBtn.style.display = 'flex';
+        pauseBtn.style.display = 'none';
+        resumeBtn.style.display = 'none';
+        skipBtn.style.display = 'none';
+        stopBtn.style.display = 'none';
+    } else if (pomodoroState.isPaused) {
+        startBtn.style.display = 'none';
+        pauseBtn.style.display = 'none';
+        resumeBtn.style.display = 'flex';
+        skipBtn.style.display = 'flex';
+        stopBtn.style.display = 'flex';
+    } else {
+        startBtn.style.display = 'none';
+        pauseBtn.style.display = 'flex';
+        resumeBtn.style.display = 'none';
+        skipBtn.style.display = 'flex';
+        stopBtn.style.display = 'flex';
+    }
+}
+
+function updateSessionDots() {
+    const dots = document.querySelectorAll('.session-dot');
+    dots.forEach((dot, index) => {
+        dot.classList.remove('completed', 'active');
+        if (index < pomodoroState.completedSessions % 4) {
+            dot.classList.add('completed');
+        } else if (index === pomodoroState.currentSession - 1 && pomodoroState.isRunning) {
+            dot.classList.add('active');
+        }
+    });
+    
+    const sessionNum = ((pomodoroState.currentSession - 1) % 4) + 1;
+    document.getElementById('sessionCount').textContent = `Session ${sessionNum}/4`;
+}
+
+function updateBrowserTab() {
+    if (pomodoroState.isRunning && !pomodoroState.isPaused) {
+        const minutes = Math.floor(pomodoroState.timeRemaining / 60);
+        const seconds = pomodoroState.timeRemaining % 60;
+        document.title = `⏱️ ${minutes}:${seconds.toString().padStart(2, '0')} - FlowTask`;
+    } else {
+        document.title = 'FlowTask - Smart Task Management';
+    }
+}
+
+function playNotificationSound() {
+    // Create a simple beep using Web Audio API
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+}
+
+function updatePomodoroStatsData() {
+    const today = new Date().toDateString();
+    
+    if (pomodoroStats.lastDate !== today) {
+        pomodoroStats.todayPomodoros = 0;
+        pomodoroStats.lastDate = today;
+    }
+    
+    pomodoroStats.todayPomodoros++;
+    pomodoroStats.totalPomodoros++;
+    pomodoroStats.totalMinutes += pomodoroSettings.workDuration;
+    
+    localStorage.setItem('pomodoroStats', JSON.stringify(pomodoroStats));
+    updatePomodoroStats();
+}
+
+function updatePomodoroStats() {
+    // Check if we need to reset today's count
+    const today = new Date().toDateString();
+    if (pomodoroStats.lastDate !== today) {
+        pomodoroStats.todayPomodoros = 0;
+        pomodoroStats.lastDate = today;
+        localStorage.setItem('pomodoroStats', JSON.stringify(pomodoroStats));
+    }
+    
+    document.getElementById('todayPomodoros').textContent = pomodoroStats.todayPomodoros;
+    document.getElementById('completedPomodoros').textContent = pomodoroStats.totalPomodoros;
+    
+    const hours = Math.floor(pomodoroStats.totalMinutes / 60);
+    const minutes = pomodoroStats.totalMinutes % 60;
+    document.getElementById('totalFocusTime').textContent = `${hours}h ${minutes}m`;
+}
+
+function savePomodoroSettings() {
+    pomodoroSettings.workDuration = parseInt(document.getElementById('workDuration').value);
+    pomodoroSettings.shortBreak = parseInt(document.getElementById('shortBreak').value);
+    pomodoroSettings.longBreak = parseInt(document.getElementById('longBreak').value);
+    pomodoroSettings.soundEnabled = document.getElementById('soundEnabled').checked;
+    
+    localStorage.setItem('pomodoroSettings', JSON.stringify(pomodoroSettings));
+    
+    // Update current session if not running
+    if (!pomodoroState.isRunning) {
+        resetPomodoroState();
+        updateTimerDisplay();
+        updateTimerRing();
+    }
+}
+
+function loadPomodoroSettings() {
+    document.getElementById('workDuration').value = pomodoroSettings.workDuration;
+    document.getElementById('shortBreak').value = pomodoroSettings.shortBreak;
+    document.getElementById('longBreak').value = pomodoroSettings.longBreak;
+    document.getElementById('soundEnabled').checked = pomodoroSettings.soundEnabled;
 }
 
 // ========================================
@@ -858,6 +1230,7 @@ document.querySelectorAll('.view-btn').forEach(btn => {
         
         const titles = {
             'today': "Today's Tasks",
+            'focus': 'Focus Mode',
             'calendar': 'Calendar View',
             'timeline': 'Task Timeline',
             'all': 'All Tasks'
@@ -900,6 +1273,31 @@ document.getElementById('nextMonth')?.addEventListener('click', () => {
     renderCalendarView();
 });
 
+// Pomodoro Focus Mode event listeners
+document.getElementById('focusTaskSelect')?.addEventListener('change', updateFocusTaskDisplay);
+document.getElementById('startPomodoroBtn')?.addEventListener('click', startPomodoro);
+document.getElementById('pausePomodoroBtn')?.addEventListener('click', pausePomodoro);
+document.getElementById('resumePomodoroBtn')?.addEventListener('click', resumePomodoro);
+document.getElementById('stopPomodoroBtn')?.addEventListener('click', stopPomodoro);
+document.getElementById('skipPomodoroBtn')?.addEventListener('click', skipSession);
+
+// Pomodoro settings toggle
+document.getElementById('focusSettingsBtn')?.addEventListener('click', () => {
+    const panel = document.getElementById('focusSettingsPanel');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        loadPomodoroSettings();
+    } else {
+        panel.style.display = 'none';
+    }
+});
+
+// Pomodoro settings save on change
+document.getElementById('workDuration')?.addEventListener('change', savePomodoroSettings);
+document.getElementById('shortBreak')?.addEventListener('change', savePomodoroSettings);
+document.getElementById('longBreak')?.addEventListener('change', savePomodoroSettings);
+document.getElementById('soundEnabled')?.addEventListener('change', savePomodoroSettings);
+
 // ========================================
 // INITIALIZATION
 // ========================================
@@ -908,5 +1306,14 @@ document.addEventListener('DOMContentLoaded', () => {
     initTheme(); // Initialize theme first
     updateUserData();
     rolloverUncompletedTasks();
+    loadPomodoroSettings();
+    updatePomodoroStats();
     renderTasks();
+});
+
+// Cleanup timer on page unload
+window.addEventListener('beforeunload', () => {
+    if (pomodoroState.timerInterval) {
+        clearInterval(pomodoroState.timerInterval);
+    }
 });

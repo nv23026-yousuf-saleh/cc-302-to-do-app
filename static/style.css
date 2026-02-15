@@ -1077,6 +1077,22 @@ body {
     margin-top: 0.25rem;
 }
 
+.calendar-day-tasks {
+    font-size: 0.65rem;
+    color: var(--text-primary);
+    margin-top: 0.25rem;
+    line-height: 1.2;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.calendar-day:hover .calendar-day-tasks {
+    color: white;
+}
+
 .calendar-indicator-dot {
     width: 6px;
     height: 6px;
@@ -1116,6 +1132,370 @@ body {
     padding-bottom: 1rem;
     border-bottom: 2px solid var(--border-color);
     transition: all 0.3s ease;
+}
+
+/* Focus Mode View */
+.focus-view {
+    animation: fadeIn 0.3s ease;
+}
+
+.focus-container {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.timer-display {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    margin: 0 auto 3rem;
+}
+
+.timer-ring {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.timer-ring-bg {
+    fill: none;
+    stroke: var(--bg-light);
+    stroke-width: 8;
+}
+
+.timer-ring-progress {
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 565.48;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1s linear, stroke 0.3s ease;
+}
+
+[data-theme="dark"] .timer-ring-progress {
+    stroke: var(--primary);
+}
+
+.timer-ring-progress.break-mode {
+    stroke: var(--success);
+}
+
+.timer-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.timer-time {
+    font-size: 4rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.3s ease;
+}
+
+.timer-mode {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    transition: color 0.3s ease;
+}
+
+.focus-task-selector {
+    background: var(--bg-white);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+}
+
+.focus-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.focus-task-dropdown {
+    width: 100%;
+    padding: 0.875rem 1.25rem;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 1rem;
+    color: var(--text-primary);
+    background: var(--bg-light);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.focus-task-dropdown:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.focus-task-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    margin-top: 1rem;
+    border-radius: 12px;
+    background: var(--bg-light);
+    color: var(--text-primary);
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.focus-task-display i {
+    font-size: 1.25rem;
+    color: var(--primary);
+}
+
+.pomodoro-sessions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.session-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--bg-light);
+    border: 3px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.session-dot.completed {
+    background: var(--primary);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+}
+
+.session-dot.active {
+    background: var(--warning);
+    border-color: var(--warning);
+    animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+.session-count {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-left: 0.5rem;
+}
+
+.focus-controls {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.focus-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.focus-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.focus-btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.focus-btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+.focus-btn-secondary {
+    background: var(--warning);
+    color: white;
+}
+
+.focus-btn-secondary:hover {
+    background: #f59e0b;
+}
+
+.focus-btn-outline {
+    background: transparent;
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
+}
+
+.focus-btn-outline:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.focus-btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.focus-btn-danger:hover {
+    background: #dc2626;
+}
+
+.focus-reward {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--success), #059669);
+    color: white;
+    border-radius: 12px;
+    font-weight: 600;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .focus-reward {
+    background: linear-gradient(135deg, #34d399, #10b981);
+}
+
+.focus-reward i {
+    font-size: 1.25rem;
+}
+
+.focus-settings {
+    background: var(--bg-white);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+}
+
+.settings-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0.875rem;
+    border: 2px solid var(--border-color);
+    background: var(--bg-light);
+    color: var(--text-primary);
+    border-radius: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.settings-toggle:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.settings-panel {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--border-color);
+}
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+}
+
+.setting-row label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.setting-row input[type="number"] {
+    width: 80px;
+    padding: 0.5rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    background: var(--bg-light);
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.setting-row input[type="number"]:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.setting-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.focus-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.stat-box {
+    background: var(--bg-white);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+
+.stat-box:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+    transition: color 0.3s ease;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    transition: color 0.3s ease;
 }
 
 /* Responsive */

@@ -59,6 +59,9 @@
                     <button class="view-btn active" data-view="today">
                         <i class="bi bi-calendar-day"></i> Today
                     </button>
+                    <button class="view-btn" data-view="focus">
+                        <i class="bi bi-bullseye"></i> Focus Mode
+                    </button>
                     <button class="view-btn" data-view="calendar">
                         <i class="bi bi-calendar3"></i> Calendar
                     </button>
@@ -150,6 +153,110 @@
                             <div id="calendarDays" class="calendar-days"></div>
                         </div>
                         <div id="selectedDateTasks" class="selected-date-tasks"></div>
+                    </div>
+
+                    <!-- Focus Mode View (Hidden by default) -->
+                    <div id="focusView" class="focus-view" style="display: none;">
+                        <div class="focus-container">
+                            <!-- Timer Display -->
+                            <div class="timer-display">
+                                <svg class="timer-ring" viewBox="0 0 200 200">
+                                    <circle class="timer-ring-bg" cx="100" cy="100" r="90" />
+                                    <circle class="timer-ring-progress" cx="100" cy="100" r="90" id="timerRingProgress" />
+                                </svg>
+                                <div class="timer-content">
+                                    <div class="timer-time" id="timerDisplay">25:00</div>
+                                    <div class="timer-mode" id="timerMode">WORK SESSION</div>
+                                </div>
+                            </div>
+
+                            <!-- Task Selection -->
+                            <div class="focus-task-selector">
+                                <label class="focus-label">Focusing on:</label>
+                                <select id="focusTaskSelect" class="focus-task-dropdown">
+                                    <option value="">Select a task...</option>
+                                </select>
+                                <div class="focus-task-display" id="focusTaskDisplay">
+                                    <i class="bi bi-check-circle"></i>
+                                    <span>No task selected</span>
+                                </div>
+                            </div>
+
+                            <!-- Session Indicators -->
+                            <div class="pomodoro-sessions">
+                                <div class="session-dot" data-session="1"></div>
+                                <div class="session-dot" data-session="2"></div>
+                                <div class="session-dot" data-session="3"></div>
+                                <div class="session-dot" data-session="4"></div>
+                                <span class="session-count" id="sessionCount">Session 0/4</span>
+                            </div>
+
+                            <!-- Controls -->
+                            <div class="focus-controls">
+                                <button id="startPomodoroBtn" class="focus-btn focus-btn-primary">
+                                    <i class="bi bi-play-fill"></i> Start Focus
+                                </button>
+                                <button id="pausePomodoroBtn" class="focus-btn focus-btn-secondary" style="display: none;">
+                                    <i class="bi bi-pause-fill"></i> Pause
+                                </button>
+                                <button id="resumePomodoroBtn" class="focus-btn focus-btn-primary" style="display: none;">
+                                    <i class="bi bi-play-fill"></i> Resume
+                                </button>
+                                <button id="skipPomodoroBtn" class="focus-btn focus-btn-outline" style="display: none;">
+                                    <i class="bi bi-skip-forward-fill"></i> Skip
+                                </button>
+                                <button id="stopPomodoroBtn" class="focus-btn focus-btn-danger" style="display: none;">
+                                    <i class="bi bi-stop-fill"></i> Stop
+                                </button>
+                            </div>
+
+                            <!-- XP Reward Display -->
+                            <div class="focus-reward">
+                                <i class="bi bi-star-fill"></i>
+                                <span id="focusReward">+5 XP per completed session</span>
+                            </div>
+
+                            <!-- Settings -->
+                            <div class="focus-settings">
+                                <button id="focusSettingsBtn" class="settings-toggle">
+                                    <i class="bi bi-gear-fill"></i> Timer Settings
+                                </button>
+                                <div id="focusSettingsPanel" class="settings-panel" style="display: none;">
+                                    <div class="setting-row">
+                                        <label>Work Duration (min)</label>
+                                        <input type="number" id="workDuration" value="25" min="1" max="60" />
+                                    </div>
+                                    <div class="setting-row">
+                                        <label>Short Break (min)</label>
+                                        <input type="number" id="shortBreak" value="5" min="1" max="15" />
+                                    </div>
+                                    <div class="setting-row">
+                                        <label>Long Break (min)</label>
+                                        <input type="number" id="longBreak" value="15" min="10" max="30" />
+                                    </div>
+                                    <div class="setting-row">
+                                        <label>Sound Alerts</label>
+                                        <input type="checkbox" id="soundEnabled" checked />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Stats -->
+                            <div class="focus-stats">
+                                <div class="stat-box">
+                                    <div class="stat-value" id="todayPomodoros">0</div>
+                                    <div class="stat-label">Today</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-value" id="totalFocusTime">0h 0m</div>
+                                    <div class="stat-label">Total Time</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-value" id="completedPomodoros">0</div>
+                                    <div class="stat-label">All Time</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Footer Actions -->
