@@ -25,6 +25,10 @@ let userData = JSON.parse(localStorage.getItem('userData')) || {
     completedToday: 0
 };
 
+// Search state
+let searchQuery = '';
+let searchPriorityFilter = 'all';
+
 // Pomodoro state
 let pomodoroState = {
     isRunning: false,
@@ -57,7 +61,6 @@ let pomodoroStats = JSON.parse(localStorage.getItem('pomodoroStats')) || {
 // ========================================
 
 function initTheme() {
-    // Check for saved theme preference or default to 'light'
     const savedTheme = localStorage.getItem('theme') || 'light';
     setTheme(savedTheme);
 }
@@ -66,12 +69,11 @@ function setTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
     
-    // Update button label - FIXED: Show opposite action
     const themeLabel = themeToggle.querySelector('.theme-label');
     if (theme === 'dark') {
-        themeLabel.textContent = 'Light Mode'; // In dark mode, show "Light Mode" to switch to light
+        themeLabel.textContent = 'Light Mode';
     } else {
-        themeLabel.textContent = 'Dark Mode'; // In light mode, show "Dark Mode" to switch to dark
+        themeLabel.textContent = 'Dark Mode';
     }
 }
 
@@ -89,7 +91,6 @@ function updateUserData() {
     const today = new Date().toDateString();
     const lastActive = userData.lastActive;
 
-    // Check streak
     if (lastActive) {
         const lastDate = new Date(lastActive);
         const yesterday = new Date();
@@ -98,12 +99,10 @@ function updateUserData() {
         if (lastDate.toDateString() === yesterday.toDateString()) {
             // Continue streak
         } else if (lastDate.toDateString() !== today) {
-            // Reset streak if missed a day
             userData.streak = 0;
         }
     }
 
-    // Reset daily counter
     if (lastActive !== today) {
         userData.completedToday = 0;
     }
@@ -167,12 +166,10 @@ function addTask() {
     const priority = prioritySelect.value;
     const suggestedPriority = autoSuggestPriority(text);
     
-    // Parse deadline from text or date input
     const parsedDeadline = parseDeadlineFromText(text);
     const manualDeadline = deadlineInput.value ? new Date(deadlineInput.value).getTime() : null;
     const deadline = manualDeadline || parsedDeadline;
     
-    // Remove deadline keywords from task text if found
     let cleanedText = text;
     if (parsedDeadline && !manualDeadline) {
         cleanedText = removeDeadlineFromText(text);
@@ -194,7 +191,6 @@ function addTask() {
     saveTasks();
     renderTasks();
     
-    // Show feedback animation
     const firstTask = document.querySelector('.task-item');
     if (firstTask) {
         firstTask.style.animation = 'none';
@@ -207,19 +203,17 @@ function addTask() {
 function autoSuggestPriority(text) {
     const lowerText = text.toLowerCase();
     
-    // High priority keywords
     const urgentWords = ['urgent', 'asap', 'critical', 'important', 'deadline', 'emergency'];
     if (urgentWords.some(word => lowerText.includes(word))) {
         return 'high';
     }
     
-    // Low priority keywords
     const lowWords = ['maybe', 'sometime', 'eventually', 'consider', 'idea'];
     if (lowWords.some(word => lowerText.includes(word))) {
         return 'low';
     }
     
-    return null; // Use selected priority
+    return null;
 }
 
 // ========================================
@@ -230,7 +224,6 @@ function parseDeadlineFromText(text) {
     const lowerText = text.toLowerCase();
     const now = new Date();
     
-    // Check for "tomorrow"
     if (lowerText.includes('tomorrow')) {
         const tomorrow = new Date(now);
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -238,14 +231,12 @@ function parseDeadlineFromText(text) {
         return tomorrow.getTime();
     }
     
-    // Check for "today"
     if (lowerText.includes('today')) {
         const today = new Date(now);
         today.setHours(23, 59, 59, 999);
         return today.getTime();
     }
     
-    // Check for days of week
     const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     for (let i = 0; i < days.length; i++) {
         if (lowerText.includes(days[i])) {
@@ -261,7 +252,6 @@ function parseDeadlineFromText(text) {
         }
     }
     
-    // Check for "in X days"
     const inDaysMatch = lowerText.match(/in (\d+) days?/);
     if (inDaysMatch) {
         const days = parseInt(inDaysMatch[1]);
@@ -271,7 +261,6 @@ function parseDeadlineFromText(text) {
         return targetDate.getTime();
     }
     
-    // Check for "in X weeks"
     const inWeeksMatch = lowerText.match(/in (\d+) weeks?/);
     if (inWeeksMatch) {
         const weeks = parseInt(inWeeksMatch[1]);
@@ -281,11 +270,10 @@ function parseDeadlineFromText(text) {
         return targetDate.getTime();
     }
     
-    // Check for date patterns like "march 15", "3/15", "2026-03-15"
     const datePatterns = [
-        /(\d{4})-(\d{1,2})-(\d{1,2})/, // YYYY-MM-DD
-        /(\d{1,2})\/(\d{1,2})\/(\d{2,4})/, // MM/DD/YYYY or MM/DD/YY
-        /(\d{1,2})\/(\d{1,2})/ // MM/DD
+        /(\d{4})-(\d{1,2})-(\d{1,2})/,
+        /(\d{1,2})\/(\d{1,2})\/(\d{2,4})/,
+        /(\d{1,2})\/(\d{1,2})/
     ];
     
     for (const pattern of datePatterns) {
@@ -293,18 +281,15 @@ function parseDeadlineFromText(text) {
         if (match) {
             let year, month, day;
             if (pattern.source.includes('\\d{4}')) {
-                // YYYY-MM-DD
                 year = parseInt(match[1]);
                 month = parseInt(match[2]) - 1;
                 day = parseInt(match[3]);
             } else if (match[3]) {
-                // MM/DD/YYYY or MM/DD/YY
                 month = parseInt(match[1]) - 1;
                 day = parseInt(match[2]);
                 year = parseInt(match[3]);
                 if (year < 100) year += 2000;
             } else {
-                // MM/DD - use current or next year
                 month = parseInt(match[1]) - 1;
                 day = parseInt(match[2]);
                 year = now.getFullYear();
@@ -319,7 +304,6 @@ function parseDeadlineFromText(text) {
         }
     }
     
-    // Check for month names
     const months = ['january', 'february', 'march', 'april', 'may', 'june', 
                     'july', 'august', 'september', 'october', 'november', 'december'];
     for (let i = 0; i < months.length; i++) {
@@ -340,17 +324,13 @@ function parseDeadlineFromText(text) {
 }
 
 function removeDeadlineFromText(text) {
-    // Remove common deadline patterns
     let cleaned = text;
-    
-    // Remove "by [date]", "due [date]", etc.
     cleaned = cleaned.replace(/\s*(by|due|until|deadline)\s+[a-zA-Z0-9\/\-\s]+/gi, '');
     cleaned = cleaned.replace(/\s*(tomorrow|today)/gi, '');
     cleaned = cleaned.replace(/\s*(sunday|monday|tuesday|wednesday|thursday|friday|saturday)/gi, '');
     cleaned = cleaned.replace(/\s*in\s+\d+\s+(days?|weeks?)/gi, '');
     cleaned = cleaned.replace(/\s*\d{4}-\d{1,2}-\d{1,2}/g, '');
     cleaned = cleaned.replace(/\s*\d{1,2}\/\d{1,2}(\/\d{2,4})?/g, '');
-    
     return cleaned.trim();
 }
 
@@ -362,7 +342,6 @@ function toggleComplete(id) {
     task.completedAt = task.completed ? Date.now() : null;
 
     if (task.completed) {
-        // Gamification rewards
         const xpAmount = task.priority === 'high' ? 15 : task.priority === 'medium' ? 10 : 5;
         addXP(xpAmount);
         userData.completedToday += 1;
@@ -374,7 +353,6 @@ function toggleComplete(id) {
         saveUserData();
         updateStatsDisplay();
         
-        // Show celebration for first completion or high priority tasks
         if (userData.completedToday === 1 || task.priority === 'high') {
             showCelebration('Great job! Keep it up!', xpAmount);
         }
@@ -386,6 +364,11 @@ function toggleComplete(id) {
 
     saveTasks();
     renderTasks();
+    
+    // Re-render search if in search view
+    if (currentView === 'search') {
+        renderSearchResults();
+    }
 }
 
 function deleteTask(id) {
@@ -394,6 +377,10 @@ function deleteTask(id) {
     tasks = tasks.filter(t => t.id !== id);
     saveTasks();
     renderTasks();
+    
+    if (currentView === 'search') {
+        renderSearchResults();
+    }
 }
 
 function editTask(id) {
@@ -405,6 +392,10 @@ function editTask(id) {
         task.text = newText.trim();
         saveTasks();
         renderTasks();
+        
+        if (currentView === 'search') {
+            renderSearchResults();
+        }
     }
 }
 
@@ -420,8 +411,6 @@ function rolloverUncompletedTasks() {
 
     tasks = tasks.map(task => {
         const taskDate = new Date(task.createdAt).toDateString();
-        
-        // If task is from yesterday and not completed, update createdAt to today
         if (taskDate === yesterdayStr && !task.completed) {
             return { ...task, createdAt: Date.now(), rolledOver: true };
         }
@@ -432,19 +421,133 @@ function rolloverUncompletedTasks() {
 }
 
 // ========================================
+// SEARCH FEATURE
+// ========================================
+
+function renderSearchView() {
+    // Show search view, hide others
+    document.getElementById('searchView').style.display = 'block';
+    taskContainer.style.display = 'none';
+    timelineView.style.display = 'none';
+    calendarView.style.display = 'none';
+    document.getElementById('focusView').style.display = 'none';
+    document.getElementById('filterSection').style.display = 'none';
+
+    // Focus the search input
+    setTimeout(() => {
+        document.getElementById('searchInput').focus();
+    }, 100);
+
+    renderSearchResults();
+}
+
+function renderSearchResults() {
+    const resultsContainer = document.getElementById('searchResults');
+    const resultsInfo = document.getElementById('searchResultsInfo');
+
+    let filtered = tasks;
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        filtered = filtered.filter(t => t.text.toLowerCase().includes(query));
+    }
+
+    // Filter by priority
+    if (searchPriorityFilter !== 'all') {
+        filtered = filtered.filter(t => t.priority === searchPriorityFilter);
+    }
+
+    resultsContainer.innerHTML = '';
+
+    // Update results info
+    if (searchQuery.trim()) {
+        resultsInfo.textContent = `Found ${filtered.length} result${filtered.length !== 1 ? 's' : ''} for "${searchQuery}"`;
+    } else {
+        resultsInfo.textContent = `Showing all ${filtered.length} task${filtered.length !== 1 ? 's' : ''}`;
+    }
+
+    if (filtered.length === 0) {
+        resultsContainer.innerHTML = `
+            <div class="search-no-results">
+                <div class="empty-icon">
+                    <i class="bi bi-search"></i>
+                </div>
+                <h4>${searchQuery ? 'No tasks found' : 'No tasks yet'}</h4>
+                <p>${searchQuery ? `No tasks match "${searchQuery}"` : 'Add some tasks to get started'}</p>
+            </div>
+        `;
+        return;
+    }
+
+    filtered.forEach(task => {
+        const taskEl = createTaskElementWithHighlight(task, searchQuery);
+        resultsContainer.appendChild(taskEl);
+    });
+}
+
+function createTaskElementWithHighlight(task, query) {
+    const taskDiv = document.createElement('div');
+    taskDiv.className = `task-item ${task.completed ? 'completed' : ''} priority-${task.priority}`;
+
+    const timeStr = formatTime(task.createdAt);
+    const deadlineBadge = task.deadline ? getDeadlineBadge(task.deadline, task.completed) : '';
+
+    // Highlight matching text
+    let displayText = escapeHtml(task.text);
+    if (query && query.trim()) {
+        const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`(${escapedQuery})`, 'gi');
+        displayText = displayText.replace(regex, '<span class="search-highlight">$1</span>');
+    }
+
+    taskDiv.innerHTML = `
+        <div class="task-content-row">
+            <div class="task-checkbox" onclick="toggleComplete(${task.id})"></div>
+            <div class="task-text-area">
+                <div class="task-text">${displayText}</div>
+                <div class="task-meta">
+                    <div class="task-time">
+                        <i class="bi bi-clock"></i>
+                        ${timeStr}
+                    </div>
+                    <div class="priority-tag ${task.priority}">${task.priority}</div>
+                    ${task.rolledOver ? '<span class="badge bg-info">Rolled Over</span>' : ''}
+                    ${deadlineBadge}
+                </div>
+            </div>
+            <div class="task-actions">
+                <button class="action-btn edit" onclick="editTask(${task.id})">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="action-btn delete" onclick="deleteTask(${task.id})">
+                    <i class="bi bi-trash3"></i>
+                </button>
+            </div>
+        </div>
+    `;
+
+    return taskDiv;
+}
+
+// ========================================
 // RENDERING FUNCTIONS
 // ========================================
 
 function renderTasks() {
     let filteredTasks = getFilteredTasks();
 
-    if (currentView === 'focus') {
+    if (currentView === 'search') {
+        renderSearchView();
+        return;
+    } else if (currentView === 'focus') {
         renderFocusView();
         taskContainer.style.display = 'none';
         timelineView.style.display = 'none';
         calendarView.style.display = 'none';
         document.getElementById('focusView').style.display = 'block';
         document.getElementById('filterSection').style.display = 'none';
+        document.getElementById('searchView').style.display = 'none';
         return;
     } else if (currentView === 'calendar') {
         renderCalendarView();
@@ -453,6 +556,7 @@ function renderTasks() {
         calendarView.style.display = 'block';
         document.getElementById('focusView').style.display = 'none';
         document.getElementById('filterSection').style.display = 'none';
+        document.getElementById('searchView').style.display = 'none';
         return;
     } else if (currentView === 'timeline') {
         renderTimelineView(filteredTasks);
@@ -461,6 +565,7 @@ function renderTasks() {
         calendarView.style.display = 'none';
         document.getElementById('focusView').style.display = 'none';
         document.getElementById('filterSection').style.display = 'none';
+        document.getElementById('searchView').style.display = 'none';
         return;
     } else {
         taskContainer.style.display = 'block';
@@ -468,6 +573,7 @@ function renderTasks() {
         calendarView.style.display = 'none';
         document.getElementById('focusView').style.display = 'none';
         document.getElementById('filterSection').style.display = 'flex';
+        document.getElementById('searchView').style.display = 'none';
     }
 
     if (currentView === 'today') {
@@ -571,7 +677,6 @@ function renderTimelineView(filteredTasks) {
         return;
     }
 
-    // Sort by creation time
     const sortedTasks = [...filteredTasks].sort((a, b) => b.createdAt - a.createdAt);
 
     sortedTasks.forEach(task => {
@@ -598,12 +703,10 @@ function renderCalendarView() {
     const year = currentCalendarDate.getFullYear();
     const month = currentCalendarDate.getMonth();
     
-    // Update month/year display
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                        'July', 'August', 'September', 'October', 'November', 'December'];
     document.getElementById('calendarMonthYear').textContent = `${monthNames[month]} ${year}`;
     
-    // Render calendar days
     const calendarDays = document.getElementById('calendarDays');
     calendarDays.innerHTML = '';
     
@@ -614,14 +717,12 @@ function renderCalendarView() {
     const today = new Date();
     const todayStr = today.toDateString();
     
-    // Previous month days
     for (let i = firstDay - 1; i >= 0; i--) {
         const day = daysInPrevMonth - i;
         const dayEl = createCalendarDay(day, year, month - 1, true);
         calendarDays.appendChild(dayEl);
     }
     
-    // Current month days
     for (let day = 1; day <= daysInMonth; day++) {
         const dayEl = createCalendarDay(day, year, month, false);
         const dateStr = new Date(year, month, day).toDateString();
@@ -637,15 +738,13 @@ function renderCalendarView() {
         calendarDays.appendChild(dayEl);
     }
     
-    // Next month days
     const totalCells = calendarDays.children.length;
-    const remainingCells = 42 - totalCells; // 6 rows * 7 days
+    const remainingCells = 42 - totalCells;
     for (let day = 1; day <= remainingCells; day++) {
         const dayEl = createCalendarDay(day, year, month + 1, true);
         calendarDays.appendChild(dayEl);
     }
     
-    // Render tasks for selected date
     if (selectedCalendarDate) {
         renderSelectedDateTasks();
     } else {
@@ -667,7 +766,6 @@ function createCalendarDay(day, year, month, isOtherMonth) {
     const date = new Date(year, month, day);
     const dateStr = date.toDateString();
     
-    // Check for tasks on this date
     const tasksOnDate = tasks.filter(t => {
         if (!t.deadline) return false;
         const taskDeadline = new Date(t.deadline);
@@ -809,7 +907,6 @@ function populateFocusTaskDropdown() {
         dropdown.appendChild(option);
     });
     
-    // Restore selected task if any
     if (pomodoroState.selectedTaskId) {
         dropdown.value = pomodoroState.selectedTaskId;
         updateFocusTaskDisplay();
@@ -849,7 +946,6 @@ function startPomodoro() {
     pomodoroState.isPaused = false;
     
     if (pomodoroState.timeRemaining === pomodoroState.totalTime) {
-        // Starting fresh session
         if (pomodoroState.currentMode === 'work') {
             pomodoroState.currentSession++;
         }
@@ -908,19 +1004,16 @@ function completeSession() {
         playNotificationSound();
     }
     
-    // Award XP for work sessions
     if (pomodoroState.currentMode === 'work') {
         const xpAmount = 5;
         addXP(xpAmount);
         pomodoroState.completedSessions++;
         
-        // Update pomodoro stats
         updatePomodoroStatsData();
         
         showCelebration('🍅 Focus session complete!', xpAmount);
     }
     
-    // Determine next mode
     if (pomodoroState.currentMode === 'work') {
         if (pomodoroState.currentSession % 4 === 0) {
             switchToMode('longBreak');
@@ -978,7 +1071,7 @@ function updateTimerDisplay() {
 
 function updateTimerRing() {
     const ring = document.getElementById('timerRingProgress');
-    const circumference = 2 * Math.PI * 90; // radius = 90
+    const circumference = 2 * Math.PI * 90;
     const progress = pomodoroState.timeRemaining / pomodoroState.totalTime;
     const offset = circumference * (1 - progress);
     
@@ -1045,7 +1138,6 @@ function updateBrowserTab() {
 }
 
 function playNotificationSound() {
-    // Create a simple beep using Web Audio API
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
@@ -1080,7 +1172,6 @@ function updatePomodoroStatsData() {
 }
 
 function updatePomodoroStats() {
-    // Check if we need to reset today's count
     const today = new Date().toDateString();
     if (pomodoroStats.lastDate !== today) {
         pomodoroStats.todayPomodoros = 0;
@@ -1104,7 +1195,6 @@ function savePomodoroSettings() {
     
     localStorage.setItem('pomodoroSettings', JSON.stringify(pomodoroSettings));
     
-    // Update current session if not running
     if (!pomodoroState.isRunning) {
         resetPomodoroState();
         updateTimerDisplay();
@@ -1233,7 +1323,8 @@ document.querySelectorAll('.view-btn').forEach(btn => {
             'focus': 'Focus Mode',
             'calendar': 'Calendar View',
             'timeline': 'Task Timeline',
-            'all': 'All Tasks'
+            'all': 'All Tasks',
+            'search': 'Search Tasks'
         };
         
         document.getElementById('viewTitle').textContent = titles[currentView];
@@ -1273,6 +1364,35 @@ document.getElementById('nextMonth')?.addEventListener('click', () => {
     renderCalendarView();
 });
 
+// ========================================
+// SEARCH EVENT LISTENERS
+// ========================================
+
+document.getElementById('searchInput')?.addEventListener('input', function() {
+    searchQuery = this.value;
+    const clearBtn = document.getElementById('clearSearchBtn');
+    clearBtn.style.display = searchQuery ? 'flex' : 'none';
+    renderSearchResults();
+});
+
+document.getElementById('clearSearchBtn')?.addEventListener('click', function() {
+    const searchInput = document.getElementById('searchInput');
+    searchInput.value = '';
+    searchQuery = '';
+    this.style.display = 'none';
+    searchInput.focus();
+    renderSearchResults();
+});
+
+document.querySelectorAll('.search-filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.search-filter-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        searchPriorityFilter = this.dataset.priority;
+        renderSearchResults();
+    });
+});
+
 // Pomodoro Focus Mode event listeners
 document.getElementById('focusTaskSelect')?.addEventListener('change', updateFocusTaskDisplay);
 document.getElementById('startPomodoroBtn')?.addEventListener('click', startPomodoro);
@@ -1281,7 +1401,6 @@ document.getElementById('resumePomodoroBtn')?.addEventListener('click', resumePo
 document.getElementById('stopPomodoroBtn')?.addEventListener('click', stopPomodoro);
 document.getElementById('skipPomodoroBtn')?.addEventListener('click', skipSession);
 
-// Pomodoro settings toggle
 document.getElementById('focusSettingsBtn')?.addEventListener('click', () => {
     const panel = document.getElementById('focusSettingsPanel');
     if (panel.style.display === 'none') {
@@ -1292,7 +1411,6 @@ document.getElementById('focusSettingsBtn')?.addEventListener('click', () => {
     }
 });
 
-// Pomodoro settings save on change
 document.getElementById('workDuration')?.addEventListener('change', savePomodoroSettings);
 document.getElementById('shortBreak')?.addEventListener('change', savePomodoroSettings);
 document.getElementById('longBreak')?.addEventListener('change', savePomodoroSettings);
@@ -1303,7 +1421,7 @@ document.getElementById('soundEnabled')?.addEventListener('change', savePomodoro
 // ========================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    initTheme(); // Initialize theme first
+    initTheme();
     updateUserData();
     rolloverUncompletedTasks();
     loadPomodoroSettings();
@@ -1311,7 +1429,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTasks();
 });
 
-// Cleanup timer on page unload
 window.addEventListener('beforeunload', () => {
     if (pomodoroState.timerInterval) {
         clearInterval(pomodoroState.timerInterval);
