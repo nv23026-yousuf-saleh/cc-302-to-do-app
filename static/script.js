@@ -71,9 +71,9 @@ function setTheme(theme) {
     
     const themeLabel = themeToggle.querySelector('.theme-label');
     if (theme === 'dark') {
-        themeLabel.textContent = 'Light Mode';
-    } else {
         themeLabel.textContent = 'Dark Mode';
+    } else {
+        themeLabel.textContent = 'Light Mode';
     }
 }
 
