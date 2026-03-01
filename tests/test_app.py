@@ -11,4 +11,3 @@ def test_home_status():
         response = client.get("/")
 
     assert response.status_code in [200, 302]
-
