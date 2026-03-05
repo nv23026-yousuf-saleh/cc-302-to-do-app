@@ -9,31 +9,35 @@ def client():
 
 
 def test_create_task(client):
-    resp = client.post("/add", data={"title": "Buy milk"}, follow_redirects=True)
+    resp = client.post("/tasks", json={"title": "Buy milk"})
+    assert resp.status_code in (200, 201)
 
-    assert resp.status_code == 200
-    assert "Buy milk" in resp.get_data(as_text=True)
+    resp2 = client.get("/tasks")
+    assert resp2.status_code == 200
+    assert "Buy milk" in resp2.get_data(as_text=True)
 
 
 def test_update_task(client):
-    client.post("/add", data={"title": "Old title"}, follow_redirects=True)
+    create = client.post("/tasks", json={"title": "Old title"})
+    assert create.status_code in (200, 201)
 
     task_id = 1
 
-    resp = client.post(f"/update/{task_id}", data={"title": "New title"}, follow_redirects=True)
+    update = client.put(f"/tasks/{task_id}", json={"title": "New title"})
+    assert update.status_code in (200, 204)
 
-    assert resp.status_code == 200
-    assert "New title" in resp.get_data(as_text=True)
+    resp2 = client.get("/tasks")
+    assert "New title" in resp2.get_data(as_text=True)
 
 
 def test_delete_task(client):
-    client.post("/add", data={"title": "To be deleted"}, follow_redirects=True)
+    create = client.post("/tasks", json={"title": "To be deleted"})
+    assert create.status_code in (200, 201)
 
     task_id = 1
 
-    resp = client.get(f"/delete/{task_id}", follow_redirects=True)
+    delete = client.delete(f"/tasks/{task_id}")
+    assert delete.status_code in (200, 204)
 
-    assert resp.status_code == 200
-    page = resp.get_data(as_text=True)
-
-    assert "To be deleted" not in page
+    resp2 = client.get("/tasks")
+    assert "To be deleted" not in resp2.get_data(as_text=True)
