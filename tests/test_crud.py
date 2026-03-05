@@ -9,35 +9,37 @@ def client():
 
 
 def test_create_task(client):
-    resp = client.post("/tasks", json={"title": "Buy milk"})
-    assert resp.status_code in (200, 201)
+    # CREATE using form
+    resp = client.post("/add", data={"title": "Buy milk"}, follow_redirects=True)
+    assert resp.status_code == 200
 
-    resp2 = client.get("/tasks")
-    assert resp2.status_code == 200
-    assert "Buy milk" in resp2.get_data(as_text=True)
+    # READ/VERIFY
+    assert "Buy milk" in resp.get_data(as_text=True)
 
 
 def test_update_task(client):
-    create = client.post("/tasks", json={"title": "Old title"})
-    assert create.status_code in (200, 201)
+    # CREATE first
+    client.post("/add", data={"title": "Old title"}, follow_redirects=True)
 
-    task_id = 1
+    task_id = 1  # Update to match your actual task ID logic
 
-    update = client.put(f"/tasks/{task_id}", json={"title": "New title"})
-    assert update.status_code in (200, 204)
+    # UPDATE
+    resp = client.post(f"/update/{task_id}", data={"title": "New title"}, follow_redirects=True)
+    assert resp.status_code == 200
 
-    resp2 = client.get("/tasks")
-    assert "New title" in resp2.get_data(as_text=True)
+    # READ/VERIFY
+    assert "New title" in resp.get_data(as_text=True)
 
 
 def test_delete_task(client):
-    create = client.post("/tasks", json={"title": "To be deleted"})
-    assert create.status_code in (200, 201)
+    # CREATE first
+    client.post("/add", data={"title": "To be deleted"}, follow_redirects=True)
 
-    task_id = 1
+    task_id = 1  # Update to match your actual task ID logic
 
-    delete = client.delete(f"/tasks/{task_id}")
-    assert delete.status_code in (200, 204)
+    # DELETE
+    resp = client.get(f"/delete/{task_id}", follow_redirects=True)
+    assert resp.status_code == 200
 
-    resp2 = client.get("/tasks")
-    assert "To be deleted" not in resp2.get_data(as_text=True)
+    # READ/VERIFY
+    assert "To be deleted" not in resp.get_data(as_text=True)
