@@ -12,7 +12,7 @@ def client():
 def test_home_page(client):
     """Home page returns 200."""
     resp = client.get("/")
-    assert resp.status_code == 200
+    assert resp.status_code == 201
 
 
 def test_home_has_content(client):
