@@ -172,3 +172,15 @@ def test_search_no_match_returns_empty(client):
 
     # Assert
     assert resp.get_json() == []
+
+
+def test_home_page(client):
+    """Home page returns 200."""
+    resp = client.get("/")
+    assert resp.status_code == 200
+
+
+def test_home_has_content(client):
+    """Home page returns HTML content."""
+    resp = client.get("/")
+    assert len(resp.get_data(as_text=True)) > 0
