@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
-from datetime import datetime
+from datetime import datetime, timezone
 
 app = Flask(__name__)
 
@@ -14,7 +14,7 @@ VALID_STATUSES = {"pending", "in-progress", "done"}
 def make_task(task_id, title, description="", priority="medium",
               due_date=None, status="pending"):
     """Return a new task dict with all metadata fields."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     return {
         "id": task_id,
         "title": title,
@@ -106,7 +106,7 @@ def update_task(task_id):
     if new_status in VALID_STATUSES:
         task["status"] = new_status
 
-    task["updated_at"] = datetime.utcnow().isoformat()
+    task["updated_at"] = datetime.now(timezone.utc).isoformat()
     return redirect(url_for("list_tasks"))
 
 
