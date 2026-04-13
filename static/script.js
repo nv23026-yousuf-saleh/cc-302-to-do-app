@@ -165,32 +165,50 @@ function addTask() {
 
     const priority = prioritySelect.value;
     const suggestedPriority = autoSuggestPriority(text);
-    
+
     const parsedDeadline = parseDeadlineFromText(text);
     const manualDeadline = deadlineInput.value ? new Date(deadlineInput.value).getTime() : null;
     const deadline = manualDeadline || parsedDeadline;
-    
+
     let cleanedText = text;
     if (parsedDeadline && !manualDeadline) {
         cleanedText = removeDeadlineFromText(text);
     }
-    
+
+    // Read description and status from new fields
+    const description = document.getElementById('descriptionInput').value.trim();
+    const status = document.getElementById('statusSelect').value;
+    const due_date = deadlineInput.value || null;
+
     const task = {
         id: Date.now(),
         text: cleanedText,
-        completed: false,
+        completed: status === 'done',
         priority: suggestedPriority || priority,
         createdAt: Date.now(),
-        completedAt: null,
-        deadline: deadline
+        completedAt: status === 'done' ? Date.now() : null,
+        deadline: deadline,
+        description: description,
+        status: status,
     };
 
     tasks.unshift(task);
     taskInput.value = '';
     deadlineInput.value = '';
+    document.getElementById('descriptionInput').value = '';
+    document.getElementById('statusSelect').value = 'pending';
     saveTasks();
     renderTasks();
-    
+
+    // Also send to Flask backend (best-effort)
+    const formData = new FormData();
+    formData.append('title', cleanedText);
+    formData.append('description', description);
+    formData.append('priority', suggestedPriority || priority);
+    formData.append('status', status);
+    if (due_date) formData.append('due_date', due_date);
+    fetch('/add', { method: 'POST', body: formData }).catch(() => {});
+
     const firstTask = document.querySelector('.task-item');
     if (firstTask) {
         firstTask.style.animation = 'none';
@@ -445,22 +463,68 @@ function renderSearchResults() {
     const resultsContainer = document.getElementById('searchResults');
     const resultsInfo = document.getElementById('searchResultsInfo');
 
-    let filtered = tasks;
-
-    // Filter by search query
+    // If there is a query, call Flask search endpoint first, then fall back to localStorage
     if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
-        filtered = filtered.filter(t => t.text.toLowerCase().includes(query));
+        fetch(`/tasks/search?q=${encodeURIComponent(searchQuery.trim())}`)
+            .then(res => res.json())
+            .then(flaskResults => {
+                // Merge Flask results with localStorage results (deduplicate by text)
+                const localQuery = searchQuery.toLowerCase().trim();
+                let localFiltered = tasks.filter(t => {
+                    const inTitle = t.text.toLowerCase().includes(localQuery);
+                    const inDesc = (t.description || '').toLowerCase().includes(localQuery);
+                    return inTitle || inDesc;
+                });
+                // Combine: show localStorage tasks first, append any Flask-only results
+                const localTitles = new Set(localFiltered.map(t => t.text.toLowerCase()));
+                flaskResults.forEach(ft => {
+                    if (!localTitles.has(ft.title.toLowerCase())) {
+                        localFiltered.push({
+                            id: ft.id,
+                            text: ft.title,
+                            description: ft.description || '',
+                            priority: ft.priority || 'medium',
+                            status: ft.status || 'pending',
+                            completed: ft.status === 'done',
+                            createdAt: Date.now(),
+                            deadline: null,
+                        });
+                    }
+                });
+                // Apply priority filter
+                if (searchPriorityFilter !== 'all') {
+                    localFiltered = localFiltered.filter(t => t.priority === searchPriorityFilter);
+                }
+                displaySearchResults(localFiltered);
+            })
+            .catch(() => {
+                // Flask unavailable — fall back to localStorage only
+                let filtered = tasks.filter(t => {
+                    const q = searchQuery.toLowerCase().trim();
+                    return t.text.toLowerCase().includes(q) ||
+                           (t.description || '').toLowerCase().includes(q);
+                });
+                if (searchPriorityFilter !== 'all') {
+                    filtered = filtered.filter(t => t.priority === searchPriorityFilter);
+                }
+                displaySearchResults(filtered);
+            });
+    } else {
+        // No query — show all tasks from localStorage filtered by priority
+        let filtered = tasks;
+        if (searchPriorityFilter !== 'all') {
+            filtered = filtered.filter(t => t.priority === searchPriorityFilter);
+        }
+        displaySearchResults(filtered);
     }
+}
 
-    // Filter by priority
-    if (searchPriorityFilter !== 'all') {
-        filtered = filtered.filter(t => t.priority === searchPriorityFilter);
-    }
+function displaySearchResults(filtered) {
+    const resultsContainer = document.getElementById('searchResults');
+    const resultsInfo = document.getElementById('searchResultsInfo');
 
     resultsContainer.innerHTML = '';
 
-    // Update results info
     if (searchQuery.trim()) {
         resultsInfo.textContent = `Found ${filtered.length} result${filtered.length !== 1 ? 's' : ''} for "${searchQuery}"`;
     } else {
@@ -493,7 +557,7 @@ function createTaskElementWithHighlight(task, query) {
     const timeStr = formatTime(task.createdAt);
     const deadlineBadge = task.deadline ? getDeadlineBadge(task.deadline, task.completed) : '';
 
-    // Highlight matching text
+    // Highlight matching text in title
     let displayText = escapeHtml(task.text);
     if (query && query.trim()) {
         const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -501,17 +565,29 @@ function createTaskElementWithHighlight(task, query) {
         displayText = displayText.replace(regex, '<span class="search-highlight">$1</span>');
     }
 
+    // Status badge
+    const statusBadge = task.status && task.status !== 'pending'
+        ? `<span class="status-badge status-${task.status}">${task.status}</span>`
+        : '';
+
+    // Description line
+    const descriptionLine = task.description
+        ? `<div class="task-description">${escapeHtml(task.description)}</div>`
+        : '';
+
     taskDiv.innerHTML = `
         <div class="task-content-row">
             <div class="task-checkbox" onclick="toggleComplete(${task.id})"></div>
             <div class="task-text-area">
                 <div class="task-text">${displayText}</div>
+                ${descriptionLine}
                 <div class="task-meta">
                     <div class="task-time">
                         <i class="bi bi-clock"></i>
                         ${timeStr}
                     </div>
                     <div class="priority-tag ${task.priority}">${task.priority}</div>
+                    ${statusBadge}
                     ${task.rolledOver ? '<span class="badge bg-info">Rolled Over</span>' : ''}
                     ${deadlineBadge}
                 </div>
@@ -632,17 +708,29 @@ function createTaskElement(task) {
     const timeStr = formatTime(task.createdAt);
     const deadlineBadge = task.deadline ? getDeadlineBadge(task.deadline, task.completed) : '';
 
+    // Status badge (only show if not pending)
+    const statusBadge = task.status && task.status !== 'pending'
+        ? `<span class="status-badge status-${task.status}">${task.status}</span>`
+        : '';
+
+    // Description line
+    const descriptionLine = task.description
+        ? `<div class="task-description">${escapeHtml(task.description)}</div>`
+        : '';
+
     taskDiv.innerHTML = `
         <div class="task-content-row">
             <div class="task-checkbox" onclick="toggleComplete(${task.id})"></div>
             <div class="task-text-area">
                 <div class="task-text">${escapeHtml(task.text)}</div>
+                ${descriptionLine}
                 <div class="task-meta">
                     <div class="task-time">
                         <i class="bi bi-clock"></i>
                         ${timeStr}
                     </div>
                     <div class="priority-tag ${task.priority}">${task.priority}</div>
+                    ${statusBadge}
                     ${task.rolledOver ? '<span class="badge bg-info">Rolled Over</span>' : ''}
                     ${deadlineBadge}
                 </div>
