@@ -165,32 +165,50 @@ function addTask() {
 
     const priority = prioritySelect.value;
     const suggestedPriority = autoSuggestPriority(text);
-    
+
     const parsedDeadline = parseDeadlineFromText(text);
     const manualDeadline = deadlineInput.value ? new Date(deadlineInput.value).getTime() : null;
     const deadline = manualDeadline || parsedDeadline;
-    
+
     let cleanedText = text;
     if (parsedDeadline && !manualDeadline) {
         cleanedText = removeDeadlineFromText(text);
     }
-    
+
+    // Read description and status from new fields
+    const description = document.getElementById('descriptionInput').value.trim();
+    const status = document.getElementById('statusSelect').value;
+    const due_date = deadlineInput.value || null;
+
     const task = {
         id: Date.now(),
         text: cleanedText,
-        completed: false,
+        completed: status === 'done',
         priority: suggestedPriority || priority,
         createdAt: Date.now(),
-        completedAt: null,
-        deadline: deadline
+        completedAt: status === 'done' ? Date.now() : null,
+        deadline: deadline,
+        description: description,
+        status: status,
     };
 
     tasks.unshift(task);
     taskInput.value = '';
     deadlineInput.value = '';
+    document.getElementById('descriptionInput').value = '';
+    document.getElementById('statusSelect').value = 'pending';
     saveTasks();
     renderTasks();
-    
+
+    // Also send to Flask backend (best-effort)
+    const formData = new FormData();
+    formData.append('title', cleanedText);
+    formData.append('description', description);
+    formData.append('priority', suggestedPriority || priority);
+    formData.append('status', status);
+    if (due_date) formData.append('due_date', due_date);
+    fetch('/add', { method: 'POST', body: formData }).catch(() => {});
+
     const firstTask = document.querySelector('.task-item');
     if (firstTask) {
         firstTask.style.animation = 'none';
@@ -493,7 +511,7 @@ function createTaskElementWithHighlight(task, query) {
     const timeStr = formatTime(task.createdAt);
     const deadlineBadge = task.deadline ? getDeadlineBadge(task.deadline, task.completed) : '';
 
-    // Highlight matching text
+    // Highlight matching text in title
     let displayText = escapeHtml(task.text);
     if (query && query.trim()) {
         const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -501,17 +519,29 @@ function createTaskElementWithHighlight(task, query) {
         displayText = displayText.replace(regex, '<span class="search-highlight">$1</span>');
     }
 
+    // Status badge
+    const statusBadge = task.status && task.status !== 'pending'
+        ? `<span class="status-badge status-${task.status}">${task.status}</span>`
+        : '';
+
+    // Description line
+    const descriptionLine = task.description
+        ? `<div class="task-description">${escapeHtml(task.description)}</div>`
+        : '';
+
     taskDiv.innerHTML = `
         <div class="task-content-row">
             <div class="task-checkbox" onclick="toggleComplete(${task.id})"></div>
             <div class="task-text-area">
                 <div class="task-text">${displayText}</div>
+                ${descriptionLine}
                 <div class="task-meta">
                     <div class="task-time">
                         <i class="bi bi-clock"></i>
                         ${timeStr}
                     </div>
                     <div class="priority-tag ${task.priority}">${task.priority}</div>
+                    ${statusBadge}
                     ${task.rolledOver ? '<span class="badge bg-info">Rolled Over</span>' : ''}
                     ${deadlineBadge}
                 </div>
@@ -632,17 +662,29 @@ function createTaskElement(task) {
     const timeStr = formatTime(task.createdAt);
     const deadlineBadge = task.deadline ? getDeadlineBadge(task.deadline, task.completed) : '';
 
+    // Status badge (only show if not pending)
+    const statusBadge = task.status && task.status !== 'pending'
+        ? `<span class="status-badge status-${task.status}">${task.status}</span>`
+        : '';
+
+    // Description line
+    const descriptionLine = task.description
+        ? `<div class="task-description">${escapeHtml(task.description)}</div>`
+        : '';
+
     taskDiv.innerHTML = `
         <div class="task-content-row">
             <div class="task-checkbox" onclick="toggleComplete(${task.id})"></div>
             <div class="task-text-area">
                 <div class="task-text">${escapeHtml(task.text)}</div>
+                ${descriptionLine}
                 <div class="task-meta">
                     <div class="task-time">
                         <i class="bi bi-clock"></i>
                         ${timeStr}
                     </div>
                     <div class="priority-tag ${task.priority}">${task.priority}</div>
+                    ${statusBadge}
                     ${task.rolledOver ? '<span class="badge bg-info">Rolled Over</span>' : ''}
                     ${deadlineBadge}
                 </div>
