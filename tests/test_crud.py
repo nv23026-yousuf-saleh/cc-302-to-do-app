@@ -19,3 +19,4 @@ def test_home_has_content(client):
     """Home page returns HTML content."""
     resp = client.get("/")
     assert len(resp.get_data(as_text=True)) > 0
+
