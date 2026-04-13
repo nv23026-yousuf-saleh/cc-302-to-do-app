@@ -209,3 +209,4 @@ def test_stats_overdue_excludes_completed(client):
 
     # Assert
     assert data["overdue"] == 0
+
