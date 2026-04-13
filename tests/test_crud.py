@@ -147,3 +147,4 @@ def test_delete_nonexistent_task_does_not_crash(client):
 
     # Assert
     assert resp.status_code in [200, 302]
+
