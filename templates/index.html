@@ -95,16 +95,16 @@
                         <div class="quick-add">
                             <div class="input-wrapper">
                                 <i class="bi bi-plus-circle input-icon"></i>
-                                <input 
-                                    type="text" 
-                                    id="taskInput" 
-                                    class="task-input" 
+                                <input
+                                    type="text"
+                                    id="taskInput"
+                                    class="task-input"
                                     placeholder="Add a task... (e.g., 'Buy milk by Friday')"
                                     autocomplete="off"
                                 >
-                                <input 
-                                    type="date" 
-                                    id="deadlineInput" 
+                                <input
+                                    type="date"
+                                    id="deadlineInput"
                                     class="deadline-input"
                                     title="Set deadline"
                                 >
@@ -112,6 +112,20 @@
                                     <option value="low">Low</option>
                                     <option value="medium" selected>Medium</option>
                                     <option value="high">High</option>
+                                </select>
+                            </div>
+                            <!-- ── NEW: description + status row ── -->
+                            <div class="metadata-row">
+                                <textarea
+                                    id="descriptionInput"
+                                    class="description-input"
+                                    placeholder="Add a description (optional)..."
+                                    rows="2"
+                                ></textarea>
+                                <select id="statusSelect" class="status-select">
+                                    <option value="pending" selected>Pending</option>
+                                    <option value="in-progress">In Progress</option>
+                                    <option value="done">Done</option>
                                 </select>
                             </div>
                         </div>
@@ -122,11 +136,11 @@
                         <div class="search-box-wrapper">
                             <div class="search-input-container">
                                 <i class="bi bi-search search-icon"></i>
-                                <input 
-                                    type="text" 
-                                    id="searchInput" 
-                                    class="search-input" 
-                                    placeholder="Search tasks by title..."
+                                <input
+                                    type="text"
+                                    id="searchInput"
+                                    class="search-input"
+                                    placeholder="Search by title or description..."
                                     autocomplete="off"
                                 >
                                 <button id="clearSearchBtn" class="clear-search-btn" style="display:none;" title="Clear search">

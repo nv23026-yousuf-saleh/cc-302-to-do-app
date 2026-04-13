@@ -1777,3 +1777,110 @@ body {
         gap: 0.4rem;
     }
 }
+/* ========================================
+   FEATURE: TASK DESCRIPTIONS & METADATA
+   ======================================== */
+
+/* Description + status row below the main input */
+.metadata-row {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.75rem;
+    align-items: flex-start;
+}
+
+.description-input {
+    flex: 1;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    background: var(--bg-light);
+    resize: none;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    line-height: 1.5;
+}
+
+.description-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: var(--bg-white);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.description-input::placeholder {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .description-input {
+    background: var(--bg-light);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .description-input:focus {
+    background: var(--bg-white);
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+}
+
+.status-select {
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    background: var(--bg-white);
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.status-select:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* Description text shown on task card */
+.task-description {
+    font-size: 0.825rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.4rem;
+    line-height: 1.5;
+    font-style: italic;
+    transition: color 0.3s ease;
+}
+
+.task-item.completed .task-description {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+/* Status badge on task card */
+.status-badge {
+    padding: 0.2rem 0.65rem;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    letter-spacing: 0.3px;
+}
+
+.status-badge.status-in-progress {
+    background: rgba(99, 102, 241, 0.12);
+    color: var(--primary);
+}
+
+.status-badge.status-done {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--success);
+}
+
+[data-theme="dark"] .status-badge.status-in-progress {
+    background: rgba(129, 140, 248, 0.2);
+}
+
+[data-theme="dark"] .status-badge.status-done {
+    background: rgba(52, 211, 153, 0.2);
+}
