@@ -64,6 +64,20 @@ def list_tasks():
     return jsonify(list(tasks.values())), 200
 
 
+@app.route("/tasks/search", methods=["GET"])
+def search_tasks():
+    """Search tasks by title and description using ?q= query parameter."""
+    q = request.args.get("q", "").strip().lower()
+    if not q:
+        return jsonify(list(tasks.values())), 200
+
+    results = [
+        t for t in tasks.values()
+        if q in t["title"].lower() or q in t["description"].lower()
+    ]
+    return jsonify(results), 200
+
+
 @app.route("/update/<int:task_id>", methods=["POST"])
 def update_task(task_id):
     """Update fields of an existing task."""
