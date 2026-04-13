@@ -463,22 +463,68 @@ function renderSearchResults() {
     const resultsContainer = document.getElementById('searchResults');
     const resultsInfo = document.getElementById('searchResultsInfo');
 
-    let filtered = tasks;
-
-    // Filter by search query
+    // If there is a query, call Flask search endpoint first, then fall back to localStorage
     if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
-        filtered = filtered.filter(t => t.text.toLowerCase().includes(query));
+        fetch(`/tasks/search?q=${encodeURIComponent(searchQuery.trim())}`)
+            .then(res => res.json())
+            .then(flaskResults => {
+                // Merge Flask results with localStorage results (deduplicate by text)
+                const localQuery = searchQuery.toLowerCase().trim();
+                let localFiltered = tasks.filter(t => {
+                    const inTitle = t.text.toLowerCase().includes(localQuery);
+                    const inDesc = (t.description || '').toLowerCase().includes(localQuery);
+                    return inTitle || inDesc;
+                });
+                // Combine: show localStorage tasks first, append any Flask-only results
+                const localTitles = new Set(localFiltered.map(t => t.text.toLowerCase()));
+                flaskResults.forEach(ft => {
+                    if (!localTitles.has(ft.title.toLowerCase())) {
+                        localFiltered.push({
+                            id: ft.id,
+                            text: ft.title,
+                            description: ft.description || '',
+                            priority: ft.priority || 'medium',
+                            status: ft.status || 'pending',
+                            completed: ft.status === 'done',
+                            createdAt: Date.now(),
+                            deadline: null,
+                        });
+                    }
+                });
+                // Apply priority filter
+                if (searchPriorityFilter !== 'all') {
+                    localFiltered = localFiltered.filter(t => t.priority === searchPriorityFilter);
+                }
+                displaySearchResults(localFiltered);
+            })
+            .catch(() => {
+                // Flask unavailable — fall back to localStorage only
+                let filtered = tasks.filter(t => {
+                    const q = searchQuery.toLowerCase().trim();
+                    return t.text.toLowerCase().includes(q) ||
+                           (t.description || '').toLowerCase().includes(q);
+                });
+                if (searchPriorityFilter !== 'all') {
+                    filtered = filtered.filter(t => t.priority === searchPriorityFilter);
+                }
+                displaySearchResults(filtered);
+            });
+    } else {
+        // No query — show all tasks from localStorage filtered by priority
+        let filtered = tasks;
+        if (searchPriorityFilter !== 'all') {
+            filtered = filtered.filter(t => t.priority === searchPriorityFilter);
+        }
+        displaySearchResults(filtered);
     }
+}
 
-    // Filter by priority
-    if (searchPriorityFilter !== 'all') {
-        filtered = filtered.filter(t => t.priority === searchPriorityFilter);
-    }
+function displaySearchResults(filtered) {
+    const resultsContainer = document.getElementById('searchResults');
+    const resultsInfo = document.getElementById('searchResultsInfo');
 
     resultsContainer.innerHTML = '';
 
-    // Update results info
     if (searchQuery.trim()) {
         resultsInfo.textContent = `Found ${filtered.length} result${filtered.length !== 1 ? 's' : ''} for "${searchQuery}"`;
     } else {
